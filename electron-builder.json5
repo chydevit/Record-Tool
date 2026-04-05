@@ -1,7 +1,7 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "dev.recordly.app",
+  "appId": "dev.crabrecords.app",
   "electronUpdaterCompatibility": ">=2.16",
   "asar": true,
   "asarUnpack": [
@@ -9,7 +9,7 @@
     "node_modules/uiohook-napi/**",
     "electron/native/**"
   ],
-  "productName": "Recordly",
+  "productName": "Crab Records",
   "npmRebuild": true,
   "buildDependenciesFromSource": true,
   "compression": "normal",
@@ -60,9 +60,9 @@
     "icon": "icons/icons/mac/icon.icns",
     "artifactName": "${productName}-${arch}.${ext}",
     "extendInfo": {
-      "NSAudioCaptureUsageDescription": "Recordly needs audio capture permission to record system audio.",
-      "NSCameraUsageDescription": "Recordly needs camera access to record webcam video.",
-      "NSMicrophoneUsageDescription": "Recordly needs microphone access to record voice audio.",
+      "NSAudioCaptureUsageDescription": "Crab Records needs audio capture permission to record system audio.",
+      "NSCameraUsageDescription": "Crab Records needs camera access to record webcam video.",
+      "NSMicrophoneUsageDescription": "Crab Records needs microphone access to record voice audio.",
       "NSCameraUseContinuityCameraDeviceType": true,
       "com.apple.security.device.audio-input": true
     }
@@ -72,7 +72,7 @@
       "AppImage"
     ],
     "icon": "icons/icons/png",
-    "artifactName": "${productName}-linux-x64.${ext}",
+    "artifactName": "Crab-Records-linux-x64.${ext}",
     "category": "AudioVideo"
   },
   "win": {
@@ -81,8 +81,8 @@
     ],
     "icon": "icons/icons/win/icon.ico"
     ,
-    "executableName": "Recordly",
-    "artifactName": "${productName}-windows-${arch}.${ext}"
+    "executableName": "CrabRecords",
+    "artifactName": "Crab-Records-windows-${arch}.${ext}"
   }
 }
 

@@ -25,13 +25,13 @@ function getToastTitle(payload: UpdateToastPayload) {
 
 	switch (payload.phase) {
 		case "available":
-			return `Recordly ${payload.version} is available`;
+			return `Crab Records ${payload.version} is available`;
 		case "downloading":
-			return `Downloading Recordly ${payload.version}`;
+			return `Downloading Crab Records ${payload.version}`;
 		case "ready":
-			return `Recordly ${payload.version} is ready`;
+			return `Crab Records ${payload.version} is ready`;
 		case "error":
-			return `Recordly ${payload.version} needs attention`;
+			return `Crab Records ${payload.version} needs attention`;
 	}
 }
 

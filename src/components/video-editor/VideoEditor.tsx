@@ -283,6 +283,7 @@ function LanguageSwitcher() {
 		en: "EN",
 		es: "ES",
 		"zh-CN": "中文",
+		km: "ខ្មែរ",
 	};
 	return (
 		<Button

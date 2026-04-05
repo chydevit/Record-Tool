@@ -1,0 +1,16 @@
+{
+	"actions": {
+		"addZoom": "បន្ថែមការពង្រីក",
+		"addTrim": "បន្ថែម Trim",
+		"addSpeed": "បន្ថែមល្បឿន",
+		"addAnnotation": "បន្ថែម Annotation",
+		"addKeyframe": "បន្ថែម Keyframe",
+		"deleteSelected": "លុបធាតុដែលបានជ្រើស",
+		"playPause": "ចាក់ / ផ្អាក",
+		"cycleForward": "ប្ដូរឆ្ពោះទៅមុខក្នុង Annotations",
+		"cycleBackward": "ប្ដូរថយក្រោយក្នុង Annotations",
+		"deleteSelectedAlt": "លុបធាតុដែលបានជ្រើស (ជម្រើសផ្សេង)",
+		"panTimeline": "ផ្លាស់ទី Timeline",
+		"zoomTimeline": "ពង្រីក Timeline"
+	}
+}

@@ -1,8 +1,18 @@
 {
 	"app": {
-		"name": "Recordly",
-		"editorTitle": "Recordly Editor",
+		"name": "Crab Records",
+		"editorTitle": "Crab Records Editor",
 		"subtitle": "Screen recording and editing",
+		"installTitle": "Install the app",
+		"installSubtitle": "Click your device and run the installer.",
+		"installWindows": "Windows",
+		"installWindowsHint": "Direct installer download (.exe)",
+		"installMacbook": "MacBook",
+		"installMacbookHint": "Apple Silicon installer (.dmg)",
+		"installMacIntel": "Mac Intel",
+		"installMacIntelHint": "Intel installer (.dmg)",
+		"installLinux": "Linux",
+		"installLinuxHint": "Direct AppImage download",
 		"language": "Language",
 		"manageRecordings": "Open recordings folder"
 	},

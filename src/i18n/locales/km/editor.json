@@ -1,0 +1,118 @@
+{
+	"playback": {
+		"play": "ចាក់",
+		"pause": "ផ្អាក"
+	},
+	"annotations": {
+		"settings": "ការកំណត់ Annotation",
+		"active": "សកម្ម",
+		"text": "អត្ថបទ",
+		"image": "រូបភាព",
+		"arrow": "ព្រួញ",
+		"textContent": "មាតិកាអត្ថបទ",
+		"textPlaceholder": "បញ្ចូលអត្ថបទរបស់អ្នក...",
+		"fontStyle": "រចនាប័ទ្មអក្សរ",
+		"selectStyle": "ជ្រើសរើសរចនាប័ទ្ម",
+		"size": "ទំហំ",
+		"toggleBold": "បិទ/បើកអក្សរដិត",
+		"toggleItalic": "បិទ/បើកអក្សរទ្រេត",
+		"toggleUnderline": "បិទ/បើកគូសបន្ទាត់ក្រោម",
+		"alignLeft": "តម្រឹមឆ្វេង",
+		"alignCenter": "តម្រឹមកណ្ដាល",
+		"alignRight": "តម្រឹមស្តាំ",
+		"textColor": "ពណ៌អត្ថបទ",
+		"background": "ផ្ទៃខាងក្រោយ",
+		"none": "គ្មាន",
+		"clearBackground": "លុបផ្ទៃខាងក្រោយ",
+		"uploadImage": "ផ្ទុករូបភាពឡើង",
+		"supportedFormats": "ទ្រង់ទ្រាយដែលគាំទ្រ: JPG, PNG, GIF, WebP",
+		"arrowDirection": "ទិសដៅព្រួញ",
+		"strokeWidth": "កម្រាស់បន្ទាត់: {{width}}px",
+		"arrowColor": "ពណ៌ព្រួញ",
+		"deleteAnnotation": "លុប Annotation",
+		"shortcutsAndTips": "ផ្លូវកាត់ និងគន្លឹះ",
+		"tipSelectAnnotation": "ផ្លាស់ទី playhead ទៅផ្នែក annotation ដែលជាន់គ្នា ហើយជ្រើសធាតុមួយ។",
+		"tipCycleForward": "ប្រើ Tab ដើម្បីប្ដូរឆ្លងកាត់ធាតុដែលជាន់គ្នា។",
+		"tipCycleBackward": "ប្រើ Shift+Tab ដើម្បីប្ដូរថយក្រោយ។",
+		"imageUploadSuccess": "បានផ្ទុករូបភាពឡើងដោយជោគជ័យ!",
+		"imageUploadError": "សូមផ្ទុកឯកសាររូបភាព JPG, PNG, GIF ឬ WebP។"
+	},
+	"fontStyles": {
+		"classic": "បុរាណ",
+		"editor": "កម្មវិធីកែសម្រួល",
+		"strong": "ខ្លាំង",
+		"typewriter": "ម៉ាស៊ីនអង្គុលីលេខ",
+		"deco": "តុបតែង",
+		"simple": "សាមញ្ញ",
+		"modern": "ទំនើប",
+		"clean": "ស្អាត"
+	},
+	"format": {
+		"mp4Video": "វីដេអូ MP4",
+		"mp4Description": "ឯកសារវីដេអូគុណភាពខ្ពស់",
+		"gifAnimation": "រូបភាពចលនា GIF",
+		"gifDescription": "រូបភាពមានចលនាសម្រាប់ចែករំលែក"
+	},
+	"gifOptions": {
+		"frameRate": "អត្រាស៊ុម",
+		"outputSize": "ទំហំលទ្ធផល",
+		"outputDimensions": "លទ្ធផល: {{width}} × {{height}}px",
+		"loopAnimation": "ចាក់រង្វិលជុំ",
+		"loopDescription": "GIF នឹងចាក់បន្តជានិច្ច"
+	},
+	"tutorial": {
+		"howTrimmingWorks": "របៀបដែលការកាត់ដំណើរការ",
+		"title": "របៀបដែលការកាត់ដំណើរការ",
+		"understanding": "យល់អំពីរបៀបកាត់ចេញផ្នែកដែលមិនចង់បានពីវីដេអូរបស់អ្នក។",
+		"descriptionP1": "ឧបករណ៍ Trim ដំណើរការដោយកំណត់ផ្នែកដែលអ្នកចង់",
+		"descriptionRemove": "លុបចេញ",
+		"descriptionP2": "ពីវីដេអូរបស់អ្នក។",
+		"descriptionP3": "ផ្នែកណាមួយនៃ timeline ដែលត្រូវបានគ្របដោយតំបន់ trim ពណ៌ក្រហម នឹងត្រូវកាត់ចេញនៅពេលអ្នកនាំចេញ។",
+		"visualExample": "ឧទាហរណ៍មើលឃើញ",
+		"removed": "បានលុប",
+		"kept": "រក្សាទុក",
+		"finalVideo": "វីដេអូចុងក្រោយ",
+		"part": "ផ្នែក {{number}}",
+		"addTrimStep": "1. បន្ថែម Trim",
+		"addTrimDesc": "ចុច T ឬចុចរូបសញ្ញាកន្រ្តៃ ដើម្បីសម្គាល់ផ្នែកសម្រាប់លុបចេញ។",
+		"adjustStep": "2. កែតម្រូវ",
+		"adjustDesc": "អូសគែមនៃតំបន់ពណ៌ក្រហម ដើម្បីគ្របដណ្តប់ផ្នែកដែលអ្នកចង់កាត់ចេញឲ្យបានត្រឹមត្រូវ។"
+	},
+	"feedback": {
+		"trigger": "មតិយោបល់",
+		"title": "មតិយោបល់ និងទំនាក់ទំនង",
+		"description": "ទាក់ទងដោយផ្ទាល់ ឬបើក issue ប្រសិនបើមានអ្វីខូច ឬខ្វះ។",
+		"emailLabel": "អ៊ីមែល",
+		"xLabel": "X",
+		"reportIssue": "រាយការណ៍បញ្ហា / ផ្ញើមតិយោបល់",
+		"openFailed": "បរាជ័យក្នុងការបើកតំណ។"
+	},
+	"keyboardShortcuts": {
+		"trigger": "ផ្លូវកាត់",
+		"title": "ផ្លូវកាត់ក្តារចុច",
+		"description": "ការយោងរហ័សសម្រាប់ timeline និងការគ្រប់គ្រង editor។",
+		"customizeTooltip": "ប្ដូរផ្លូវកាត់តាមបំណង",
+		"customize": "កែតម្រូវ",
+		"panTimeline": "ផ្លាស់ទី Timeline",
+		"zoomTimeline": "ពង្រីក Timeline",
+		"cycleAnnotations": "ប្ដូរឆ្លងកាត់ Annotations",
+		"tab": "Tab"
+	},
+	"actions": {
+		"saveAgain": "រក្សាទុកម្តងទៀត",
+		"showInFolder": "បង្ហាញក្នុងថតឯកសារ"
+	},
+	"project": {
+		"untitled": "គ្មានចំណងជើង"
+	},
+	"exportStatus": {
+		"exporting": "កំពុងនាំចេញ",
+		"renderingFile": "កំពុងបង្កើតឯកសាររបស់អ្នក។",
+		"preparing": "កំពុងរៀបចំការនាំចេញ...",
+		"completePercent": "បានបញ្ចប់ {{percent}}%",
+		"issue": "បញ្ហាក្នុងការនាំចេញ",
+		"complete": "ការនាំចេញបានបញ្ចប់",
+		"savedSuccessfully": "ឯកសាររបស់អ្នកត្រូវបានរក្សាទុកដោយជោគជ័យ។"
+	},
+	"openRecordingsFolder": "បើកថតឯកសារការថត"
+}

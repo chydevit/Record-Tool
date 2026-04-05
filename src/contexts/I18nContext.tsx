@@ -35,6 +35,13 @@ import zhCNLaunch from '@/i18n/locales/zh-CN/launch.json'
 import zhCNSettings from '@/i18n/locales/zh-CN/settings.json'
 import zhCNShortcuts from '@/i18n/locales/zh-CN/shortcuts.json'
 import zhCNTimeline from '@/i18n/locales/zh-CN/timeline.json'
+import kmCommon from '@/i18n/locales/km/common.json'
+import kmDialogs from '@/i18n/locales/km/dialogs.json'
+import kmEditor from '@/i18n/locales/km/editor.json'
+import kmLaunch from '@/i18n/locales/km/launch.json'
+import kmSettings from '@/i18n/locales/km/settings.json'
+import kmShortcuts from '@/i18n/locales/km/shortcuts.json'
+import kmTimeline from '@/i18n/locales/km/timeline.json'
 
 const LOCALE_STORAGE_KEY = 'recordly.locale'
 
@@ -67,6 +74,15 @@ const messages: Record<AppLocale, LocaleBundle> = {
     settings: zhCNSettings,
     dialogs: zhCNDialogs,
     shortcuts: zhCNShortcuts,
+  },
+  km: {
+    common: kmCommon,
+    launch: kmLaunch,
+    editor: kmEditor,
+    timeline: kmTimeline,
+    settings: kmSettings,
+    dialogs: kmDialogs,
+    shortcuts: kmShortcuts,
   },
 } as const
 

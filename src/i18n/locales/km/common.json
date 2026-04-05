@@ -1,0 +1,36 @@
+{
+    "app":  {
+                "name":  "Crab Records",
+                "editorTitle":  "កម្មវិធីកែសម្រួល Crab Records",
+                "subtitle":  "ការថតអេក្រង់ និងការកែសម្រួល",
+                "language":  "ភាសា",
+                "manageRecordings":  "បើកថតឯកសារការថត",
+                "installTitle":  "ដំឡើងកម្មវិធី",
+                "installSubtitle":  "ចុចលើឧបករណ៍របស់អ្នក ហើយដំណើរការឯកសារដំឡើង។",
+                "installWindows":  "Windows",
+                "installWindowsHint":  "ទាញយកឯកសារដំឡើងដោយផ្ទាល់ (.exe)",
+                "installMacbook":  "MacBook",
+                "installMacbookHint":  "ឯកសារដំឡើង Apple Silicon (.dmg)",
+                "installMacIntel":  "Mac Intel",
+                "installMacIntelHint":  "ឯកសារដំឡើង Intel (.dmg)",
+                "installLinux":  "Linux",
+                "installLinuxHint":  "ទាញយក AppImage ដោយផ្ទាល់"
+            },
+    "actions":  {
+                    "cancel":  "បោះបង់",
+                    "close":  "បិទ",
+                    "export":  "នាំចេញ",
+                    "load":  "ផ្ទុក",
+                    "redo":  "ធ្វើឡើងវិញ",
+                    "reset":  "កំណត់ឡើងវិញ",
+                    "save":  "រក្សាទុក",
+                    "undo":  "មិនធ្វើវិញ",
+                    "delete":  "លុប",
+                    "done":  "រួចរាល់"
+                },
+    "errors":  {
+                   "invalidFileType":  "ប្រភេទឯកសារមិនត្រឹមត្រូវ",
+                   "failedToUploadImage":  "បរាជ័យក្នុងការផ្ទុករូបភាពឡើង",
+                   "fileReadError":  "មានបញ្ហាក្នុងការអានឯកសារ។"
+               }
+}

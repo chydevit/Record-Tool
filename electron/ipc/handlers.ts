@@ -1553,7 +1553,7 @@ async function resolveWhisperExecutablePath(preferredPath?: string | null) {
     }
   }
 
-  throw new Error('No Whisper runtime was found. Recordly looked for a bundled binary first, then checked common system install locations.')
+  throw new Error('No Whisper runtime was found. Crab Records looked for a bundled binary first, then checked common system install locations.')
 }
 
 async function resolveCaptionAudioCandidates(videoPath: string) {
@@ -3127,7 +3127,7 @@ export function registerIpcHandlers(
     const ownWindowNames = new Set(
       [
         app.getName(),
-        'Recordly',
+        'Crab Records',
         ...BrowserWindow.getAllWindows().flatMap((win) => {
           const title = win.getTitle().trim()
           return title ? [title] : []
@@ -3180,7 +3180,7 @@ export function registerIpcHandlers(
             return true
           }
 
-          if (ALLOW_RECORDLY_WINDOW_CAPTURE && normalizedName.includes('recordly')) {
+          if (ALLOW_RECORDLY_WINDOW_CAPTURE && normalizedName.includes('crab records')) {
             return true
           }
 
@@ -3223,7 +3223,7 @@ export function registerIpcHandlers(
             return false
           }
 
-          if (ALLOW_RECORDLY_WINDOW_CAPTURE && (normalizedAppName === 'recordly' || normalizedWindowName?.includes('recordly'))) {
+          if (ALLOW_RECORDLY_WINDOW_CAPTURE && (normalizedAppName === 'crab records' || normalizedWindowName?.includes('crab records'))) {
             return true
           }
 
@@ -3267,7 +3267,7 @@ export function registerIpcHandlers(
             return true
           }
 
-          if (ALLOW_RECORDLY_WINDOW_CAPTURE && normalizedName.includes('recordly')) {
+          if (ALLOW_RECORDLY_WINDOW_CAPTURE && normalizedName.includes('crab records')) {
             return true
           }
 
@@ -3653,9 +3653,9 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
         &&
         source?.id?.startsWith('window:')
         && appName
-        && (appName === ownAppName || appName === 'recordly')
+        && (appName === ownAppName || appName === 'crab records')
       ) {
-        return { success: false, message: 'Cannot record Recordly windows. Please select another app window.' }
+        return { success: false, message: 'Cannot record Crab Records windows. Please select another app window.' }
       }
 
       const helperPath = await ensureNativeCaptureHelperBinary()
@@ -3746,8 +3746,8 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
         const { response } = await dialog.showMessageBox({
           type: 'warning',
           title: 'Screen Recording Permission Required',
-          message: 'Recordly needs screen recording permission to capture your screen.',
-          detail: 'Please open System Settings > Privacy & Security > Screen Recording, make sure Recordly is toggled ON, then try recording again.',
+          message: 'Crab Records needs screen recording permission to capture your screen.',
+          detail: 'Please open System Settings > Privacy & Security > Screen Recording, make sure Crab Records is toggled ON, then try recording again.',
           buttons: ['Open System Settings', 'Cancel'],
           defaultId: 0,
           cancelId: 1,
@@ -3774,8 +3774,8 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
         const { response } = await dialog.showMessageBox({
           type: 'warning',
           title: 'Microphone Permission Required',
-          message: 'Recordly needs microphone permission to record audio.',
-          detail: 'Please open System Settings > Privacy & Security > Microphone, make sure Recordly is toggled ON, then try recording again.',
+          message: 'Crab Records needs microphone permission to record audio.',
+          detail: 'Please open System Settings > Privacy & Security > Microphone, make sure Crab Records is toggled ON, then try recording again.',
           buttons: ['Open System Settings', 'Cancel'],
           defaultId: 0,
           cancelId: 1,
@@ -4869,10 +4869,10 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
         : `${safeName}.${PROJECT_FILE_EXTENSION}`
 
       const result = await dialog.showSaveDialog({
-        title: 'Save Recordly Project',
+        title: 'Save Crab Records Project',
         defaultPath: path.join(projectsDir, defaultName),
         filters: [
-          { name: 'Recordly Project', extensions: [PROJECT_FILE_EXTENSION] },
+          { name: 'Crab Records Project', extensions: [PROJECT_FILE_EXTENSION] },
           { name: 'JSON', extensions: ['json'] }
         ],
         properties: ['createDirectory', 'showOverwriteConfirmation']
@@ -4910,10 +4910,10 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
     try {
       const projectsDir = await getProjectsDir()
       const result = await dialog.showOpenDialog({
-        title: 'Open Recordly Project',
+        title: 'Open Crab Records Project',
         defaultPath: projectsDir,
         filters: [
-          { name: 'Recordly Project', extensions: [PROJECT_FILE_EXTENSION, ...LEGACY_PROJECT_FILE_EXTENSIONS] },
+          { name: 'Crab Records Project', extensions: [PROJECT_FILE_EXTENSION, ...LEGACY_PROJECT_FILE_EXTENSIONS] },
           { name: 'JSON', extensions: ['json'] },
           { name: 'All Files', extensions: ['*'] }
         ],
