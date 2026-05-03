@@ -354,20 +354,13 @@ async function stageRuntimeArtifacts(target, candidateDir, runtimeEntries) {
 }
 
 async function main() {
-	const cmake = findCmake();
-	if (!cmake) {
-		throw new Error(
-			"[build-whisper-runtime] CMake is required to build the bundled Whisper runtime.",
-		);
-	}
-
-	const sourceDir = await ensureSourceTree();
 	const targets = getTargetConfigs();
 
 	console.log(
 		`[build-whisper-runtime] Target architectures for ${process.platform}: ${targets.map((target) => target.archTag).join(", ")}`,
 	);
 
+	const targetsNeedingBuild = [];
 	for (const target of targets) {
 		if (await shouldSkipBuild(target)) {
 			console.log(
@@ -375,7 +368,36 @@ async function main() {
 			);
 			continue;
 		}
+		targetsNeedingBuild.push(target);
+	}
 
+	if (targetsNeedingBuild.length === 0) {
+		return;
+	}
+
+	const cmake = findCmake();
+	if (!cmake) {
+		const requireBundledRuntime = /^(1|true|yes)$/i.test(
+			process.env.RECORDLY_REQUIRE_BUNDLED_WHISPER_RUNTIME ?? "",
+		);
+		const message =
+			"[build-whisper-runtime] CMake is not installed, so the optional bundled Whisper runtime was not built.";
+
+		if (requireBundledRuntime) {
+			throw new Error(
+				`${message} Install Visual Studio with C++ CMake tools or standalone CMake.`,
+			);
+		}
+
+		console.warn(
+			`${message} Auto-captions can still use a user-selected or system Whisper executable.`,
+		);
+		return;
+	}
+
+	const sourceDir = await ensureSourceTree();
+
+	for (const target of targetsNeedingBuild) {
 		await mkdir(target.buildRoot, { recursive: true });
 
 		console.log(
