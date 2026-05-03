@@ -60,6 +60,47 @@ https://github.com/chydevit/Record-Tool/releases
 
 The upstream Recordly release configuration may still reference the original project owner in some build metadata. Check `electron-builder.json5` and `.github/workflows/release.yml` before publishing releases from a fork.
 
+## Install on Windows from the EXE
+
+Use the Windows `.exe` installer when you want to install Crab Records as a normal desktop app.
+
+1. Open the [Releases page](https://github.com/chydevit/Record-Tool/releases).
+2. Choose the latest release.
+3. Download the Windows installer asset. It is usually named like `Crab-Records-windows-x64.exe`.
+4. Double-click the downloaded `.exe` file.
+5. Follow the installer prompts.
+6. Launch Crab Records from the Start menu or desktop shortcut.
+
+Windows may show a Microsoft Defender SmartScreen warning for unsigned or newly published builds. If you trust the release source, click **More info**, then **Run anyway**.
+
+On first launch, allow the permissions needed for your recording workflow:
+
+- Microphone access if you want voice recording.
+- Camera access if you want webcam overlay recording.
+- Screen/window capture prompts when Windows asks for capture access.
+- System audio access when using the built-in audio recording path.
+
+If recording does not start correctly after installation:
+
+- Restart the app after granting permissions.
+- Make sure you are using Windows 10 20H1 build 19041 or newer.
+- Try recording a visible, non-minimized window.
+- Reinstall from the latest release if the installer was interrupted.
+- Check that antivirus software has not quarantined the app or its native helper files.
+
+To uninstall the app, open **Settings > Apps > Installed apps**, find **Crab Records**, and choose **Uninstall**.
+
+### Build the Windows EXE locally
+
+Developers can build a local Windows installer with:
+
+```bash
+npm install
+npm run build:win
+```
+
+The generated installer is written to the `release/` directory. Windows helper builds require Visual Studio C++ build tools and CMake. If CMake is missing, the optional bundled Whisper runtime is skipped unless `RECORDLY_REQUIRE_BUNDLED_WHISPER_RUNTIME=1` is set.
+
 ## Development
 
 Requirements:
