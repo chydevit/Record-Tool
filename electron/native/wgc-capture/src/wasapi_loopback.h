@@ -14,7 +14,7 @@ public:
     ~WasapiCapture();
 
     bool initializeLoopback(const std::string& outputPath);
-    bool initializeMic(const std::string& outputPath, const std::string& deviceName = "");
+    bool initializeMic(const std::string& outputPath, const std::string& deviceName = "", float gainMultiplier = 1.0f);
     bool start();
     bool pause();
     bool resume();
@@ -39,6 +39,7 @@ private:
     IAudioCaptureClient* captureClient_ = nullptr;
     WAVEFORMATEX* mixFormat_ = nullptr;
     DWORD streamFlags_ = 0;
+    float gainMultiplier_ = 1.0f;
 
     UINT32 bufferFrameCount_ = 0;
 };

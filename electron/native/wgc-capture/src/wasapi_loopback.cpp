@@ -76,9 +76,10 @@ bool WasapiCapture::initializeLoopback(const std::string& outputPath) {
     return initializeCommon();
 }
 
-bool WasapiCapture::initializeMic(const std::string& outputPath, const std::string& deviceName) {
+bool WasapiCapture::initializeMic(const std::string& outputPath, const std::string& deviceName, float gainMultiplier) {
     outputPath_ = outputPath;
     streamFlags_ = 0;
+    gainMultiplier_ = gainMultiplier;
 
     HRESULT hr = CoCreateInstance(
         CLSID_MMDeviceEnumerator_, nullptr, CLSCTX_ALL,
@@ -187,6 +188,13 @@ static int16_t floatToInt16(float v) {
     return static_cast<int16_t>(v * 32767.0f);
 }
 
+static int16_t applyGainToInt16(int16_t sample, float gainMultiplier) {
+    const float scaled = static_cast<float>(sample) * gainMultiplier;
+    if (scaled > 32767.0f) return 32767;
+    if (scaled < -32768.0f) return -32768;
+    return static_cast<int16_t>(scaled);
+}
+
 bool WasapiCapture::writeWavHeader(HANDLE file, DWORD dataSize) {
     WORD channels = static_cast<WORD>(mixFormat_->nChannels);
     DWORD sampleRate = mixFormat_->nSamplesPerSec;
@@ -265,11 +273,16 @@ void WasapiCapture::captureThread() {
                 pcmBuffer.resize(totalSamples);
                 const float* src = reinterpret_cast<const float*>(data);
                 for (UINT32 i = 0; i < totalSamples; i++) {
-                    pcmBuffer[i] = floatToInt16(src[i]);
+                    pcmBuffer[i] = floatToInt16(src[i] * gainMultiplier_);
                 }
             } else {
                 pcmBuffer.resize(totalSamples);
                 std::memcpy(pcmBuffer.data(), data, totalSamples * sizeof(int16_t));
+                if (gainMultiplier_ != 1.0f) {
+                    for (UINT32 i = 0; i < totalSamples; i++) {
+                        pcmBuffer[i] = applyGainToInt16(pcmBuffer[i], gainMultiplier_);
+                    }
+                }
             }
 
             captureClient_->ReleaseBuffer(numFrames);

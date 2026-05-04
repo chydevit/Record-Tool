@@ -38,6 +38,7 @@ const COMPANION_AUDIO_LAYOUTS = [
   { platform: 'mac' as const, systemSuffix: '.system.m4a', micSuffix: '.mic.m4a' },
   { platform: 'win' as const, systemSuffix: '.system.wav', micSuffix: '.mic.wav' },
 ]
+const WINDOWS_MIC_MUX_GAIN = 2.2
 
 function getAssetRootPath() {
   if (app.isPackaged) {
@@ -2114,7 +2115,7 @@ async function muxNativeWindowsVideoWithAudio(videoPath: string, systemAudioPath
       filterParts.push(micPauseFilter)
     }
 
-    filterParts.push(`${micPauseFilter ? '[mic_trimmed]' : '[2:a]'}atrim=start=0.10,asetpts=PTS-STARTPTS[m]`)
+    filterParts.push(`${micPauseFilter ? '[mic_trimmed]' : '[2:a]'}volume=${WINDOWS_MIC_MUX_GAIN},atrim=start=0.10,asetpts=PTS-STARTPTS[m]`)
     filterParts.push(`${systemPauseFilter ? '[system_trimmed]' : '[1:a]'}[m]amix=inputs=2:duration=longest:normalize=0[aout]`)
 
     await execFileAsync(
@@ -2135,15 +2136,20 @@ async function muxNativeWindowsVideoWithAudio(videoPath: string, systemAudioPath
     )
   } else {
     // Single audio track
-    const pauseFilter = buildPausedAudioFilter('1:a', 'aout', normalizedPauseSegments)
+    const singleAudioInput = audioInputs[0]
+    const pauseOutputLabel = singleAudioInput === 'mic' ? 'aout_raw' : 'aout'
+    const pauseFilter = buildPausedAudioFilter('1:a', pauseOutputLabel, normalizedPauseSegments)
+    const filterComplex = pauseFilter && singleAudioInput === 'mic'
+      ? `${pauseFilter};[${pauseOutputLabel}]volume=${WINDOWS_MIC_MUX_GAIN}[aout]`
+      : pauseFilter
 
     await execFileAsync(
       ffmpegPath,
-      pauseFilter
+      filterComplex
         ? [
             '-y',
             ...inputs,
-            '-filter_complex', pauseFilter,
+            '-filter_complex', filterComplex,
             '-map', '0:v:0',
             '-map', '[aout]',
             '-c:v', 'copy',
@@ -2152,17 +2158,30 @@ async function muxNativeWindowsVideoWithAudio(videoPath: string, systemAudioPath
             '-shortest',
             mixedOutputPath,
           ]
-        : [
-            '-y',
-            ...inputs,
-            '-map', '0:v:0',
-            '-map', '1:a:0',
-            '-c:v', 'copy',
-            '-c:a', 'aac',
-            '-b:a', '192k',
-            '-shortest',
-            mixedOutputPath,
-          ],
+        : singleAudioInput === 'mic'
+          ? [
+              '-y',
+              ...inputs,
+              '-filter:a', `volume=${WINDOWS_MIC_MUX_GAIN}`,
+              '-map', '0:v:0',
+              '-map', '1:a:0',
+              '-c:v', 'copy',
+              '-c:a', 'aac',
+              '-b:a', '192k',
+              '-shortest',
+              mixedOutputPath,
+            ]
+          : [
+              '-y',
+              ...inputs,
+              '-map', '0:v:0',
+              '-map', '1:a:0',
+              '-c:v', 'copy',
+              '-c:a', 'aac',
+              '-b:a', '192k',
+              '-shortest',
+              mixedOutputPath,
+            ],
       { timeout: 120000, maxBuffer: 10 * 1024 * 1024 },
     )
   }

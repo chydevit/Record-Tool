@@ -23,6 +23,7 @@ static std::atomic<int64_t> g_pauseStartTimestampHns{0};
 static std::atomic<int64_t> g_accumulatedPausedHns{0};
 static std::mutex g_stopMutex;
 static std::condition_variable g_stopCv;
+static constexpr float kMicrophoneGainMultiplier = 2.2f;
 
 struct CaptureConfig {
     int64_t displayId = 0;
@@ -299,7 +300,11 @@ int main(int argc, char* argv[]) {
     }
 
     if (config.captureMic && !config.micOutputPath.empty()) {
-        micInitialized = micCapture.initializeMic(config.micOutputPath, config.micDeviceName);
+        micInitialized = micCapture.initializeMic(
+            config.micOutputPath,
+            config.micDeviceName,
+            kMicrophoneGainMultiplier
+        );
         if (!micInitialized) {
             std::cerr << "WARNING: Failed to initialize WASAPI mic capture" << std::endl;
         }

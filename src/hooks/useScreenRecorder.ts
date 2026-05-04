@@ -26,7 +26,7 @@ const RECORDING_FILE_PREFIX = "recording-";
 const VIDEO_FILE_EXTENSION = ".webm";
 const AUDIO_BITRATE_VOICE = 128_000;
 const AUDIO_BITRATE_SYSTEM = 192_000;
-const MIC_GAIN_BOOST = 1.4;
+const MIC_GAIN_BOOST = 2.2;
 const WEBCAM_BITRATE = 8_000_000;
 const WEBCAM_WIDTH = 1280;
 const WEBCAM_HEIGHT = 720;
@@ -227,6 +227,51 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
     return false;
   }, []);
+
+  const resolveNativeMicrophoneLabel = useCallback(async () => {
+    if (!microphoneEnabled) {
+      return undefined;
+    }
+
+    let permissionStream: MediaStream | null = null;
+
+    try {
+      let devices = await navigator.mediaDevices.enumerateDevices();
+      let mic = devices.find(
+        (device) => device.kind === "audioinput" && device.deviceId === microphoneDeviceId,
+      );
+
+      if (mic?.label) {
+        return mic.label;
+      }
+
+      if (!microphoneDeviceId) {
+        return undefined;
+      }
+
+      permissionStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          deviceId: { exact: microphoneDeviceId },
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
+
+      devices = await navigator.mediaDevices.enumerateDevices();
+      mic = devices.find(
+        (device) => device.kind === "audioinput" && device.deviceId === microphoneDeviceId,
+      );
+
+      return mic?.label || undefined;
+    } catch (error) {
+      console.warn("Failed to resolve selected microphone label for native capture:", error);
+      return undefined;
+    } finally {
+      permissionStream?.getTracks().forEach((track) => track.stop());
+    }
+  }, [microphoneDeviceId, microphoneEnabled]);
 
   const selectMimeType = () => {
     const preferred = [
@@ -736,6 +781,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           }
         }
 
+        micLabel = await resolveNativeMicrophoneLabel();
         const nativeResult = await window.electronAPI.startNativeScreenRecording(selectedSource, {
           capturesSystemAudio: systemAudioEnabled,
           capturesMicrophone: microphoneEnabled,
@@ -875,9 +921,23 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
         const systemAudioTrack = screenMediaStream.getAudioTracks()[0];
         const micAudioTrack = microphoneStream.current?.getAudioTracks()[0];
+        const createBoostedMicTrack = () => {
+          if (!micAudioTrack) {
+            return null;
+          }
+
+          const context = mixingContext.current ?? new AudioContext();
+          mixingContext.current = context;
+          const micSource = context.createMediaStreamSource(new MediaStream([micAudioTrack]));
+          const micGain = context.createGain();
+          micGain.gain.value = MIC_GAIN_BOOST;
+          const destination = context.createMediaStreamDestination();
+          micSource.connect(micGain).connect(destination);
+          return destination.stream.getAudioTracks()[0] ?? null;
+        };
 
         if (systemAudioTrack && micAudioTrack) {
-          const context = new AudioContext();
+          const context = mixingContext.current ?? new AudioContext();
           mixingContext.current = context;
           const systemSource = context.createMediaStreamSource(new MediaStream([systemAudioTrack]));
           const micSource = context.createMediaStreamSource(new MediaStream([micAudioTrack]));
@@ -897,7 +957,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           stream.current.addTrack(systemAudioTrack);
           systemAudioIncluded = true;
         } else if (micAudioTrack) {
-          stream.current.addTrack(micAudioTrack);
+          const boostedMicTrack = createBoostedMicTrack();
+          if (boostedMicTrack) {
+            stream.current.addTrack(boostedMicTrack);
+          } else {
+            stream.current.addTrack(micAudioTrack);
+          }
         }
       } else {
         const mediaStream = await navigator.mediaDevices.getDisplayMedia({
