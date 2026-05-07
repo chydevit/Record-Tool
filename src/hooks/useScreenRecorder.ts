@@ -375,15 +375,20 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           videoPath,
           webcamPath,
           timeOffsetMs: webcamTimeOffsetMs.current,
+          autoEditRequested: true,
         });
       } else {
-        await window.electronAPI.setCurrentVideoPath(videoPath);
+        await window.electronAPI.setCurrentVideoPath(videoPath, {
+          autoEditRequested: true,
+        });
       }
     } catch (error) {
       console.error("Failed to persist recording session metadata:", error);
 
       try {
-        await window.electronAPI.setCurrentVideoPath(videoPath);
+        await window.electronAPI.setCurrentVideoPath(videoPath, {
+          autoEditRequested: true,
+        });
       } catch (fallbackError) {
         console.error("Failed to persist fallback video path:", fallbackError);
       }

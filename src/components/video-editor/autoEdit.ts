@@ -209,7 +209,12 @@ function buildCandidateAnalysisPaths(
 			? fallbackPathsResult.paths
 			: [];
 
-	return Array.from(new Set([videoPath, ...fallbackPaths.filter((path): path is string => Boolean(path))]));
+	return Array.from(
+		new Set([
+			...fallbackPaths.filter((path): path is string => Boolean(path)),
+			videoPath,
+		]),
+	);
 }
 
 export async function suggestAutoEditFromVideo(videoPath: string): Promise<AutoEditSuggestionResult> {

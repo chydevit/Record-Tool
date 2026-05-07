@@ -17,6 +17,7 @@
     "output": "release"
   },
   "files": [
+    "electron-bootstrap.mjs",
     "dist",
     "dist-electron",
     "electron/native",

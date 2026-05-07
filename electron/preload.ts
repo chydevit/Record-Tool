@@ -366,6 +366,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	revealInFolder: (filePath: string) => {
 		return ipcRenderer.invoke("reveal-in-folder", filePath);
 	},
+	openPath: (targetPath: string) => {
+		return ipcRenderer.invoke("open-path", targetPath);
+	},
 	openRecordingsFolder: () => {
 		return ipcRenderer.invoke("open-recordings-folder");
 	},

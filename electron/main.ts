@@ -4,9 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
 	BrowserWindow as ElectronBrowserWindow,
+	IpcMainEvent,
 	MenuItemConstructorOptions,
 	Notification as ElectronNotification,
 	Tray as ElectronTray,
+	WebContents,
 } from "electron";
 import { RECORDINGS_DIR } from "./appPaths";
 import { showCursor } from "./cursorHider";
@@ -134,7 +136,7 @@ function getRecordingTrayIcon() {
 	return recordingTrayIcon;
 }
 
-ipcMain.on("set-has-unsaved-changes", (_event, hasChanges: boolean) => {
+ipcMain.on("set-has-unsaved-changes", (_event: IpcMainEvent, hasChanges: boolean) => {
 	editorHasUnsavedChanges = hasChanges;
 });
 
@@ -317,8 +319,9 @@ function setupApplicationMenu() {
 }
 
 function createTray() {
-	tray = new Tray(getDefaultTrayIcon());
-	tray.on("click", () => focusOrCreateMainWindow());
+	const nextTray = new Tray(getDefaultTrayIcon());
+	nextTray.on("click", () => focusOrCreateMainWindow());
+	tray = nextTray;
 }
 
 function getPublicAssetPath(filename: string) {
@@ -489,7 +492,7 @@ ipcMain.handle("download-available-update", () => {
 	return downloadAvailableUpdate(sendUpdateToastToWindows);
 });
 
-ipcMain.handle("defer-downloaded-update", (_event, delayMs?: number) => {
+ipcMain.handle("defer-downloaded-update", (_event: IpcMainEvent, delayMs?: number) => {
 	return deferUpdateReminder(getUpdateDialogWindow, sendUpdateToastToWindows, delayMs);
 });
 
@@ -520,6 +523,7 @@ ipcMain.handle("check-for-app-updates", async () => {
 
 function updateTrayMenu(recording: boolean = false) {
 	if (!tray) return;
+	const currentTray = tray;
 	const trayIcon = recording ? getRecordingTrayIcon() : getDefaultTrayIcon();
 	const trayToolTip = recording ? `Recording: ${selectedSourceName}` : "Crab Records";
 	const menuTemplate = recording
@@ -554,9 +558,9 @@ function updateTrayMenu(recording: boolean = false) {
 					},
 				},
 			];
-	tray.setImage(trayIcon);
-	tray.setToolTip(trayToolTip);
-	tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
+	currentTray.setImage(trayIcon);
+	currentTray.setToolTip(trayToolTip);
+	currentTray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
 }
 
 function createEditorWindowWrapper() {
@@ -594,7 +598,7 @@ function createEditorWindowWrapper() {
 
 		if (choice === 0) {
 			mainWindow!.webContents.send("request-save-before-close");
-			ipcMain.once("save-before-close-done", (_event, saved: boolean) => {
+			ipcMain.once("save-before-close-done", (_event: IpcMainEvent, saved: boolean) => {
 				if (saved) {
 					closeEditorWindowBypassingUnsavedPrompt(mainWindow);
 				}
@@ -642,17 +646,21 @@ app.whenReady().then(async () => {
 		app.setAppUserModelId("dev.crabrecords.app");
 	}
 
-	session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+	session.defaultSession.setPermissionCheckHandler((_webContents: WebContents, permission: string) => {
 		const allowed = ["media", "audioCapture", "microphone", "camera", "videoCapture"];
 		return allowed.includes(permission);
 	});
 
-	session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+	session.defaultSession.setPermissionRequestHandler((
+		_webContents: WebContents,
+		permission: string,
+		callback: (permissionGranted: boolean) => void,
+	) => {
 		const allowed = ["media", "audioCapture", "microphone", "camera", "videoCapture"];
 		callback(allowed.includes(permission));
 	});
 
-	session.defaultSession.setDevicePermissionHandler((_details) => true);
+	session.defaultSession.setDevicePermissionHandler((_details: unknown) => true);
 
 	if (process.platform === "darwin") {
 		const cameraStatus = systemPreferences.getMediaAccessStatus("camera");
@@ -711,11 +719,14 @@ app.whenReady().then(async () => {
 	// via an unsafe cast breaks Electron's internal cursor-constraint
 	// propagation and causes cursor: 'never' from the renderer to be silently
 	// ignored by the native capture pipeline.
-	session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
+	session.defaultSession.setDisplayMediaRequestHandler(async (
+		_request: unknown,
+		callback: (streams: { video?: { id: string; name: string } } | Record<string, never>) => void,
+	) => {
 		try {
 			const sources = await desktopCapturer.getSources({ types: ["screen", "window"] });
 			const sourceId = getSelectedSourceId();
-			const source = sourceId ? (sources.find((s) => s.id === sourceId) ?? sources[0]) : sources[0];
+			const source = sourceId ? (sources.find((s: { id: string }) => s.id === sourceId) ?? sources[0]) : sources[0];
 			if (source) {
 				callback({
 					video: { id: source.id, name: source.name },

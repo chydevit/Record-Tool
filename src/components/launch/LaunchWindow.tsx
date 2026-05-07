@@ -203,12 +203,25 @@ export function LaunchWindow() {
 			}
 
 			const screenshotPath = result.path;
+			const openResult = await window.electronAPI.openPath(screenshotPath);
+			if (!openResult.success) {
+				console.warn("Failed to open screenshot after capture:", openResult.error);
+			}
 			toast.success(t("recording.actions.screenshotSaved"), {
 				description: screenshotPath,
 				action: {
 					label: t("recording.actions.show"),
-					onClick: () => {
-						void window.electronAPI.revealInFolder(screenshotPath);
+					onClick: async () => {
+						try {
+							const revealResult = await window.electronAPI.revealInFolder(screenshotPath);
+							if (!revealResult.success) {
+								toast.error(
+									revealResult.error || revealResult.message || "Failed to reveal item in folder.",
+								);
+							}
+						} catch (revealError) {
+							toast.error(`Error revealing in folder: ${String(revealError)}`);
+						}
 					},
 				},
 			});
@@ -251,6 +264,7 @@ export function LaunchWindow() {
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const hudContentRef = useRef<HTMLDivElement>(null);
 	const hudBarRef = useRef<HTMLDivElement>(null);
+	const featureBarRef = useRef<HTMLDivElement>(null);
 	const moreButtonRef = useRef<HTMLButtonElement | null>(null);
 	const webcamPreviewRef = useRef<HTMLVideoElement | null>(null);
 	const isDraggingRef = useRef(false);
@@ -530,6 +544,7 @@ export function LaunchWindow() {
 	useEffect(() => {
 		const hudContent = hudContentRef.current;
 		const hudBar = hudBarRef.current;
+		const featureBar = featureBarRef.current;
 		if (!hudContent || !hudBar || typeof ResizeObserver === "undefined") {
 			return;
 		}
@@ -541,6 +556,8 @@ export function LaunchWindow() {
 				Math.max(
 					hudBar.getBoundingClientRect().width,
 					hudBar.scrollWidth,
+					featureBar?.getBoundingClientRect().width ?? 0,
+					featureBar?.scrollWidth ?? 0,
 					hudContent.getBoundingClientRect().width,
 					hudContent.scrollWidth,
 				) + 24,
@@ -569,6 +586,9 @@ export function LaunchWindow() {
 		});
 		resizeObserver.observe(hudContent);
 		resizeObserver.observe(hudBar);
+		if (featureBar) {
+			resizeObserver.observe(featureBar);
+		}
 
 		return () => {
 			resizeObserver.disconnect();
@@ -747,8 +767,8 @@ export function LaunchWindow() {
 			case "ready":
 				return updateStatus.availableVersion
 					? t("recording.update.availableTitle", "Crab Records {{version}} is available.", {
-						version: updateStatus.availableVersion,
-					})
+							version: updateStatus.availableVersion,
+						})
 					: t("recording.update.availableGenericTitle");
 			case "downloading":
 				return updateStatus.detail ?? t("recording.update.downloadingTitle");
@@ -825,7 +845,9 @@ export function LaunchWindow() {
 			<button
 				type="button"
 				className={`${styles.ib} ${microphoneEnabled ? styles.ibActive : ""}`}
-				title={microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")}
+				title={
+					microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")
+				}
 			>
 				{microphoneEnabled ? <Mic size={16} /> : <MicOff size={16} />}
 				<span className={styles.ibLabel}>{t("recording.mic")}</span>
@@ -840,7 +862,9 @@ export function LaunchWindow() {
 				title={paused ? t("recording.resume") : t("recording.pause")}
 			>
 				{paused ? <Play size={16} fill="currentColor" strokeWidth={0} /> : <Pause size={16} />}
-				<span className={styles.ibLabel}>{paused ? t("recording.resume") : t("recording.pause")}</span>
+				<span className={styles.ibLabel}>
+					{paused ? t("recording.resume") : t("recording.pause")}
+				</span>
 			</button>
 
 			<button
@@ -900,7 +924,9 @@ export function LaunchWindow() {
 				type="button"
 				className={`${styles.ib} ${microphoneEnabled ? styles.ibActive : ""}`}
 				onClick={toggleMicrophone}
-				title={microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")}
+				title={
+					microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")
+				}
 			>
 				{microphoneEnabled ? <Mic size={16} /> : <MicOff size={16} />}
 				<span className={styles.ibLabel}>{t("recording.mic")}</span>
@@ -922,7 +948,9 @@ export function LaunchWindow() {
 				type="button"
 				className={`${styles.ib} ${systemAudioEnabled ? styles.ibActive : ""}`}
 				onClick={() => setSystemAudioEnabled(!systemAudioEnabled)}
-				title={systemAudioEnabled ? t("recording.disableSystemAudio") : t("recording.enableSystemAudio")}
+				title={
+					systemAudioEnabled ? t("recording.disableSystemAudio") : t("recording.enableSystemAudio")
+				}
 			>
 				{systemAudioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
 				<span className={styles.ibLabel}>{t("recording.system")}</span>
@@ -940,11 +968,7 @@ export function LaunchWindow() {
 			</button>
 
 			{/* Annotate */}
-			<button
-				type="button"
-				className={styles.ib}
-				title={t("recording.annotate")}
-			>
+			<button type="button" className={styles.ib} title={t("recording.annotate")}>
 				<Pencil size={16} />
 				<span className={styles.ibLabel}>{t("recording.annotate")}</span>
 			</button>
@@ -1347,7 +1371,11 @@ export function LaunchWindow() {
 
 					{/* ── Feature bar (secondary toolbar) ── */}
 					{!recording && (
-						<div className={styles.featureBar} aria-label={t("recording.actions.label")}>
+						<div
+							ref={featureBarRef}
+							className={styles.featureBar}
+							aria-label={t("recording.actions.label")}
+						>
 							{/* Screenshot — one-shot action */}
 							<button
 								type="button"
@@ -1373,7 +1401,10 @@ export function LaunchWindow() {
 								onClick={handleSpotlight}
 							>
 								<span className={styles.featureBarIcon}>
-									<Crosshair size={18} style={{ color: spotlightEnabled ? "#f9a8d4" : "#f472b6" }} />
+									<Crosshair
+										size={18}
+										style={{ color: spotlightEnabled ? "#f9a8d4" : "#f472b6" }}
+									/>
 								</span>
 								<span className={styles.featureBarLabel}>{t("recording.actions.spotlight")}</span>
 							</button>
@@ -1407,10 +1438,11 @@ export function LaunchWindow() {
 								onClick={handleHideDesktop}
 							>
 								<span className={styles.featureBarIcon}>
-									{hideDesktopEnabled
-										? <Eye size={18} style={{ color: "#93c5fd" }} />
-										: <EyeOff size={18} style={{ color: "#60a5fa" }} />
-									}
+									{hideDesktopEnabled ? (
+										<Eye size={18} style={{ color: "#93c5fd" }} />
+									) : (
+										<EyeOff size={18} style={{ color: "#60a5fa" }} />
+									)}
 								</span>
 								<span className={styles.featureBarLabel}>{t("recording.actions.hideDesktop")}</span>
 							</button>
@@ -1448,7 +1480,9 @@ export function LaunchWindow() {
 								</span>
 								<span className={styles.featureBarToggle}>
 									<span className={styles.featureBarLabel}>{t("recording.actions.autoStop")}</span>
-									<span className={`${styles.togglePill} ${autoStopEnabled ? styles.togglePillOn : ""}`}>
+									<span
+										className={`${styles.togglePill} ${autoStopEnabled ? styles.togglePillOn : ""}`}
+									>
 										{autoStopEnabled ? t("recording.actions.on") : t("recording.actions.off")}
 									</span>
 								</span>
@@ -1457,7 +1491,10 @@ export function LaunchWindow() {
 					)}
 
 					{/* ── Status bar — always visible, shows timer + storage ── */}
-					<div className={styles.statusBar} style={{ opacity: recording ? 1 : 0.45, pointerEvents: recording ? "auto" : "none" }}>
+					<div
+						className={styles.statusBar}
+						style={{ opacity: recording ? 1 : 0.45, pointerEvents: recording ? "auto" : "none" }}
+					>
 						<div
 							className={styles.statusDot}
 							style={{
@@ -1465,9 +1502,7 @@ export function LaunchWindow() {
 								animation: recording && !paused ? undefined : "none",
 							}}
 						/>
-						<span className={styles.statusTime}>
-							{`00:${formatTime(elapsed)}`}
-						</span>
+						<span className={styles.statusTime}>{`00:${formatTime(elapsed)}`}</span>
 						<div className={styles.statusSep} />
 						<span className={styles.statusStorage}>0 KB / 100 GB</span>
 					</div>

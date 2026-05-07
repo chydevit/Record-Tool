@@ -16,14 +16,15 @@ export default defineConfig({
           build: {
             lib: {
               entry: 'electron/main.ts',
-              formats: ['cjs'],
+              formats: ['es'],
               fileName: () => 'main',
             },
             rollupOptions: {
               external: ['ffmpeg-static', 'uiohook-napi', 'electron'],
               output: {
-                entryFileNames: 'main.cjs',
-                chunkFileNames: '[name]-[hash].cjs',
+                format: 'es',
+                entryFileNames: 'main.js',
+                chunkFileNames: '[name]-[hash].js',
               },
             },
           }

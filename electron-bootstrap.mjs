@@ -14,6 +14,6 @@ Module._load = function patchedLoad(request, parent, isMain) {
 };
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
-const bundledMainPath = path.join(rootDir, "dist-electron", "main.cjs");
+const bundledMainPath = path.join(rootDir, "dist-electron", "main.js");
 
 await import(pathToFileURL(bundledMainPath).href);
