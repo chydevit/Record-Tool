@@ -23,6 +23,14 @@ let hudOverlayCaptureProtectionLoaded = false;
 let countdownWindow: BrowserWindow | null = null;
 let updateToastWindow: BrowserWindow | null = null;
 
+function shouldExposeHudInTaskbar(): boolean {
+	return process.platform === "win32";
+}
+
+function shouldIgnoreHudMouseOnLaunch(): boolean {
+	return process.platform !== "win32";
+}
+
 const HUD_OVERLAY_SETTINGS_FILE = path.join(USER_DATA_PATH, "hud-overlay-settings.json");
 const HUD_BOTTOM_CLEARANCE_CM = 3.5;
 const DIP_PER_INCH = 96;
@@ -304,9 +312,13 @@ export function createHudOverlayWindow(): BrowserWindow {
 		transparent: true,
 		resizable: false,
 		alwaysOnTop: true,
-		skipTaskbar: true,
+		skipTaskbar: !shouldExposeHudInTaskbar(),
 		hasShadow: false,
 		show: false,
+		title: "Crab Records",
+		...(process.platform === "win32" && {
+			icon: WINDOW_ICON_PATH,
+		}),
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
 			nodeIntegration: false,
@@ -320,7 +332,9 @@ export function createHudOverlayWindow(): BrowserWindow {
 		win.setContentProtection(hudOverlayHiddenFromCapture);
 	}
 
-	win.setIgnoreMouseEvents(true, { forward: true });
+	if (shouldIgnoreHudMouseOnLaunch()) {
+		win.setIgnoreMouseEvents(true, { forward: true });
+	}
 
 	win.webContents.on("did-finish-load", () => {
 		win?.webContents.send("main-process-message", new Date().toLocaleString());

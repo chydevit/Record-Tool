@@ -167,6 +167,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => {
 		return ipcRenderer.invoke("save-exported-video", videoData, fileName);
 	},
+	saveRecordedAudio: (audioData: ArrayBuffer, fileName: string) => {
+		return ipcRenderer.invoke("save-recorded-audio", audioData, fileName);
+	},
 	openVideoFilePicker: () => {
 		return ipcRenderer.invoke("open-video-file-picker");
 	},
@@ -206,10 +209,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	}) => {
 		return ipcRenderer.invoke("generate-auto-captions", options);
 	},
-	setCurrentVideoPath: (path: string) => {
-		return ipcRenderer.invoke("set-current-video-path", path);
+	setCurrentVideoPath: (
+		path: string,
+		options?: { autoEditRequested?: boolean },
+	) => {
+		return ipcRenderer.invoke("set-current-video-path", path, options);
 	},
-	setCurrentRecordingSession: (session: { videoPath: string; webcamPath?: string | null; timeOffsetMs?: number }) => {
+	setCurrentRecordingSession: (session: {
+		videoPath: string;
+		webcamPath?: string | null;
+		timeOffsetMs?: number;
+		autoEditRequested?: boolean;
+	}) => {
 		return ipcRenderer.invoke("set-current-recording-session", session);
 	},
 	getCurrentRecordingSession: () => {

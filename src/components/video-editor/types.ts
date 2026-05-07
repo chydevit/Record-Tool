@@ -244,6 +244,7 @@ export interface AudioRegion {
 	endMs: number;
 	audioPath: string;
 	volume: number;
+	kind?: "music" | "voiceover";
 }
 
 export interface CaptionCue {

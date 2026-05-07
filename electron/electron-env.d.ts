@@ -186,6 +186,10 @@ interface Window {
 			videoData: ArrayBuffer,
 			fileName: string,
 		) => Promise<{ success: boolean; path?: string; message?: string; canceled?: boolean }>;
+		saveRecordedAudio: (
+			audioData: ArrayBuffer,
+			fileName: string,
+		) => Promise<{ success: boolean; path?: string; message?: string; error?: string }>;
 		openVideoFilePicker: () => Promise<{ success: boolean; path?: string; canceled?: boolean }>;
 		openAudioFilePicker: () => Promise<{ success: boolean; path?: string; canceled?: boolean }>;
 		openWhisperExecutablePicker: () => Promise<{
@@ -232,15 +236,24 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
-		setCurrentVideoPath: (path: string) => Promise<{ success: boolean }>;
+		setCurrentVideoPath: (
+			path: string,
+			options?: { autoEditRequested?: boolean },
+		) => Promise<{ success: boolean }>;
 		setCurrentRecordingSession: (session: {
 			videoPath: string;
 			webcamPath?: string | null;
 			timeOffsetMs?: number;
+			autoEditRequested?: boolean;
 		}) => Promise<{ success: boolean }>;
 		getCurrentRecordingSession: () => Promise<{
 			success: boolean;
-			session?: { videoPath: string; webcamPath?: string | null; timeOffsetMs?: number };
+			session?: {
+				videoPath: string;
+				webcamPath?: string | null;
+				timeOffsetMs?: number;
+				autoEditRequested?: boolean;
+			};
 		}>;
 		getCurrentVideoPath: () => Promise<{ success: boolean; path?: string }>;
 		clearCurrentVideoPath: () => Promise<{ success: boolean }>;

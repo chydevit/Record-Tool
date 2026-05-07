@@ -404,6 +404,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						endMs,
 						audioPath: typeof region.audioPath === "string" ? region.audioPath : "",
 						volume: isFiniteNumber(region.volume) ? clamp(region.volume, 0, 1) : 1,
+						kind: region.kind === "voiceover" ? "voiceover" : "music",
 					};
 				})
 		: [];

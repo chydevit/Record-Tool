@@ -227,6 +227,12 @@ interface SettingsPanelProps {
 	selectedSpeedValue?: PlaybackSpeed | null;
 	onSpeedChange?: (speed: PlaybackSpeed) => void;
 	onSpeedDelete?: (id: string) => void;
+	selectedAudioId?: string | null;
+	selectedAudioVolume?: number | null;
+	selectedAudioName?: string | null;
+	selectedAudioKind?: "music" | "voiceover" | null;
+	onAudioVolumeChange?: (volume: number) => void;
+	onAudioDelete?: (id: string) => void;
 }
 
 export default SettingsPanel;
@@ -562,6 +568,12 @@ export function SettingsPanel({
 	selectedSpeedValue,
 	onSpeedChange,
 	onSpeedDelete,
+	selectedAudioId,
+	selectedAudioVolume,
+	selectedAudioName,
+	selectedAudioKind,
+	onAudioVolumeChange,
+	onAudioDelete,
 }: SettingsPanelProps) {
 	const tSettings = useScopedT("settings");
 	const { t } = useI18n();
@@ -1951,7 +1963,7 @@ export function SettingsPanel({
 
 			<div className={cn(
 				"flex-shrink-0 border-t border-white/10 bg-[#151518] p-4 pt-3",
-				!selectedZoomId && !selectedTrimId && !selectedSpeedId && "hidden"
+				!selectedZoomId && !selectedTrimId && !selectedSpeedId && !selectedAudioId && "hidden"
 			)}>
 				{selectedZoomId && (
 					<div className="mb-4">
@@ -2052,6 +2064,48 @@ export function SettingsPanel({
 						>
 							<Trash2 className="h-3 w-3" />
 							{tSettings("speed.deleteRegion")}
+						</Button>
+					</div>
+				)}
+
+				{selectedAudioId && !selectedZoomId && !selectedTrimId && !selectedSpeedId && (
+					<div>
+						<div className="mb-3 flex items-center justify-between gap-3">
+							<div>
+								<span className="text-sm font-medium text-slate-200">
+									{selectedAudioKind === "voiceover"
+										? tSettings("audio.voiceOver", "Voice over")
+										: tSettings("audio.music", "Music")}
+								</span>
+								<div className="mt-1 text-[10px] text-slate-500">
+									{selectedAudioName ??
+										(selectedAudioKind === "voiceover"
+											? tSettings("audio.voiceOverDescription", "Recorded narration track")
+											: tSettings("audio.musicDescription", "Imported music track"))}
+								</div>
+							</div>
+						</div>
+						<SliderControl
+							label={tSettings("audio.volume", "Volume")}
+							value={selectedAudioVolume ?? 1}
+							defaultValue={1}
+							min={0}
+							max={2}
+							step={0.01}
+							onChange={(value) => onAudioVolumeChange?.(value)}
+							formatValue={(value) => `${Math.round(value * 100)}%`}
+							parseInput={(text) => parseFloat(text.replace(/%$/, "")) / 100}
+						/>
+						<Button
+							onClick={() => selectedAudioId && onAudioDelete?.(selectedAudioId)}
+							variant="destructive"
+							size="sm"
+							className="mt-2 h-8 w-full gap-2 border border-red-500/20 bg-red-500/10 text-xs text-red-400 transition-all hover:border-red-500/30 hover:bg-red-500/20"
+						>
+							<Trash2 className="h-3 w-3" />
+							{selectedAudioKind === "voiceover"
+								? tSettings("audio.deleteVoiceOver", "Delete voice over")
+								: tSettings("audio.deleteMusic", "Delete music")}
 						</Button>
 					</div>
 				)}

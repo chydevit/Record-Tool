@@ -7,7 +7,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Crop } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Mic2, Sparkles, Music2, Crop } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from 'uuid';
@@ -70,11 +70,14 @@ interface TimelineEditorProps {
   selectedSpeedId?: string | null;
   onSelectSpeed?: (id: string | null) => void;
   audioRegions?: AudioRegion[];
-  onAudioAdded?: (span: Span, audioPath: string) => void;
+  onAudioAdded?: (span: Span, audioPath: string, kind?: "music" | "voiceover") => void;
   onAudioSpanChange?: (id: string, span: Span) => void;
   onAudioDelete?: (id: string) => void;
   selectedAudioId?: string | null;
   onSelectAudio?: (id: string | null) => void;
+  onAutoEditRequested?: () => void;
+  onVoiceOverRequested?: () => void;
+  voiceOverState?: "idle" | "recording" | "saving";
   aspectRatio: AspectRatio;
   onAspectRatioChange: (aspectRatio: AspectRatio) => void;
   onOpenCropEditor?: () => void;
@@ -608,7 +611,7 @@ function Timeline({
           ))}
         </Row>
 
-        <Row id={AUDIO_ROW_ID} isEmpty={audioItems.length === 0} hint="Click music icon to add audio">
+        <Row id={AUDIO_ROW_ID} isEmpty={audioItems.length === 0} hint="Use Voice Over to record or Music to import audio">
           {audioItems.map((item) => (
             <Item
               id={item.id}
@@ -667,6 +670,9 @@ export default function TimelineEditor({
   onAudioDelete,
   selectedAudioId,
   onSelectAudio,
+  onAutoEditRequested,
+  onVoiceOverRequested,
+  voiceOverState = "idle",
   aspectRatio,
   onAspectRatioChange,
   onOpenCropEditor,
@@ -1183,7 +1189,7 @@ export default function TimelineEditor({
     onSpeedAdded({ start: startPos, end: startPos + actualDuration });
   }, [videoDuration, totalMs, currentTimeMs, speedRegions, onSpeedAdded, defaultRegionDurationMs]);
 
-  const handleAddAudio = useCallback(async () => {
+  const handleAddMusic = useCallback(async () => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onAudioAdded) {
       return;
     }
@@ -1238,7 +1244,7 @@ export default function TimelineEditor({
 
     // Use full audio duration, but clamp to available gap and video length
     const actualDuration = Math.min(audioDurationMs, gapToNext, totalMs - startPos);
-    onAudioAdded({ start: startPos, end: startPos + actualDuration }, result.path);
+    onAudioAdded({ start: startPos, end: startPos + actualDuration }, result.path, "music");
   }, [videoDuration, totalMs, currentTimeMs, audioRegions, onAudioAdded]);
 
   const handleAddAnnotation = useCallback(() => {
@@ -1528,6 +1534,16 @@ export default function TimelineEditor({
             <Scissors className="w-4 h-4" />
           </Button>
           <Button
+            onClick={onAutoEditRequested}
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-slate-300 hover:text-[#22c55e] hover:bg-[#22c55e]/10 transition-all"
+            title="Auto Edit Silence"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="font-medium">Auto Edit</span>
+          </Button>
+          <Button
             onClick={handleAddAnnotation}
             variant="ghost"
             size="icon"
@@ -1546,13 +1562,30 @@ export default function TimelineEditor({
             <Gauge className="w-4 h-4" />
           </Button>
           <Button
-            onClick={handleAddAudio}
+            onClick={onVoiceOverRequested}
             variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
-            title="Add Audio"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-slate-300 hover:text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
+            title={voiceOverState === "recording" ? "Stop Voice Over" : "Record Voice Over"}
           >
-            <Music className="w-4 h-4" />
+            <Mic2 className="w-4 h-4" />
+            <span className="font-medium">
+              {voiceOverState === "recording"
+                ? "Stop Voice Over"
+                : voiceOverState === "saving"
+                  ? "Saving Voice Over"
+                  : "Voice Over"}
+            </span>
+          </Button>
+          <Button
+            onClick={handleAddMusic}
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-slate-300 hover:text-[#f59e0b] hover:bg-[#f59e0b]/10 transition-all"
+            title="Add Music"
+          >
+            <Music2 className="w-4 h-4" />
+            <span className="font-medium">Music</span>
           </Button>
         </div>
         <div className="flex items-center gap-2">

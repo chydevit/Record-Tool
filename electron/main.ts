@@ -45,6 +45,7 @@ import {
 	showUpdateToastWindow,
 } from "./windows";
 
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 if (process.platform === "darwin") {

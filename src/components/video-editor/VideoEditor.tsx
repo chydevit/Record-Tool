@@ -46,6 +46,7 @@ import { resolveMediaElementSource } from "@/lib/exporter/localMediaSource";
 import { clampMediaTimeToDuration } from "@/lib/mediaTiming";
 import { matchesShortcut } from "@/lib/shortcuts";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
+import { suggestAutoEditFromVideo } from "./autoEdit";
 import { resolveAutoCaptionSourcePath } from "./autoCaptionSource";
 import { CropControl } from "./CropControl";
 import { ExportSettingsMenu } from "./ExportSettingsMenu";
@@ -133,6 +134,8 @@ type PendingExportSave = {
 	fileName: string;
 	arrayBuffer: ArrayBuffer;
 };
+
+type AutoEditPhase = "idle" | "processing" | "done" | "error";
 
 const MP4_EXPORT_FRAME_RATE = 60;
 
@@ -423,6 +426,9 @@ export default function VideoEditor() {
 	const [previewVersion, setPreviewVersion] = useState(0);
 	const [isPreviewReady, setIsPreviewReady] = useState(false);
 	const [autoSuggestZoomsTrigger, setAutoSuggestZoomsTrigger] = useState(0);
+	const [autoEditPhase, setAutoEditPhase] = useState<AutoEditPhase>("idle");
+	const [autoEditMessage, setAutoEditMessage] = useState<string | null>(null);
+	const [voiceOverState, setVoiceOverState] = useState<"idle" | "recording" | "saving">("idle");
 	const headerLeftControlsPaddingClass = appPlatform === "darwin" ? "pl-[76px]" : "";
 
 	const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
@@ -439,6 +445,8 @@ export default function VideoEditor() {
 	const exporterRef = useRef<VideoExporter | null>(null);
 	const autoSuggestedVideoPathRef = useRef<string | null>(null);
 	const pendingFreshRecordingAutoZoomPathRef = useRef<string | null>(null);
+	const pendingImportedAutoEditPathRef = useRef<string | null>(null);
+	const completedImportedAutoEditPathRef = useRef<string | null>(null);
 	const historyPastRef = useRef<EditorHistorySnapshot[]>([]);
 	const historyFutureRef = useRef<EditorHistorySnapshot[]>([]);
 	const historyCurrentRef = useRef<EditorHistorySnapshot | null>(null);
@@ -447,7 +455,14 @@ export default function VideoEditor() {
 	const pendingTelemetryRetryTimeoutRef = useRef<number | null>(null);
 	const cropSnapshotRef = useRef<CropRegion | null>(null);
 	const mp4SupportRequestRef = useRef(0);
+	const voiceOverRecorderRef = useRef<MediaRecorder | null>(null);
+	const voiceOverStreamRef = useRef<MediaStream | null>(null);
+	const voiceOverChunksRef = useRef<Blob[]>([]);
+	const voiceOverStartMsRef = useRef(0);
 	const [historyVersion, setHistoryVersion] = useState(0);
+	const selectedAudioRegion = selectedAudioId
+		? audioRegions.find((region) => region.id === selectedAudioId) ?? null
+		: null;
 
 	useEffect(() => {
 		void window.electronAPI.getPlatform().then((platform) => {
@@ -1127,6 +1142,10 @@ export default function VideoEditor() {
 			setVideoPath(toFileUrl(sourcePath));
 			setCurrentProjectPath(path ?? null);
 			pendingFreshRecordingAutoZoomPathRef.current = null;
+			pendingImportedAutoEditPathRef.current = null;
+			completedImportedAutoEditPathRef.current = null;
+			setAutoEditPhase("idle");
+			setAutoEditMessage(null);
 			if (normalizedEditor.webcam.sourcePath) {
 				await window.electronAPI.setCurrentRecordingSession?.({
 					videoPath: sourcePath,
@@ -1348,12 +1367,22 @@ export default function VideoEditor() {
 					setVideoPath(sourceVideoUrl);
 					setCurrentProjectPath(null);
 					setLastSavedSnapshot(null);
-					pendingFreshRecordingAutoZoomPathRef.current = sourceVideoUrl;
+					const autoEditRequested = Boolean(sessionResult.session.autoEditRequested);
+					pendingFreshRecordingAutoZoomPathRef.current = autoEditRequested
+						? null
+						: sourceVideoUrl;
+					pendingImportedAutoEditPathRef.current = autoEditRequested ? sourcePath : null;
+					completedImportedAutoEditPathRef.current = null;
+					setAutoEditPhase("idle");
+					setAutoEditMessage(null);
 					setWebcam((prev) => ({
 						...prev,
 						enabled: Boolean(sessionResult.session?.webcamPath),
 						sourcePath: sessionResult.session?.webcamPath ?? null,
 					}));
+					if (autoEditRequested && !sessionResult.session?.webcamPath) {
+						await window.electronAPI.setCurrentVideoPath(sourcePath);
+					}
 					return;
 				}
 
@@ -1366,6 +1395,10 @@ export default function VideoEditor() {
 					setCurrentProjectPath(null);
 					setLastSavedSnapshot(null);
 					pendingFreshRecordingAutoZoomPathRef.current = sourceVideoUrl;
+					pendingImportedAutoEditPathRef.current = null;
+					completedImportedAutoEditPathRef.current = null;
+					setAutoEditPhase("idle");
+					setAutoEditMessage(null);
 					setWebcam((prev) => ({
 						...prev,
 						enabled: false,
@@ -1772,6 +1805,93 @@ export default function VideoEditor() {
 		};
 	}, [handleOpenProjectBrowser, handleSaveProject, handleSaveProjectAs]);
 
+	const runAutoEditForVideo = useCallback(
+		async (
+			targetVideoPath: string,
+			options?: {
+				markImportedFlow?: boolean;
+				isCancelled?: () => boolean;
+			},
+		) => {
+			setAutoEditPhase("processing");
+			setAutoEditMessage(
+				t(
+					"editor.autoEdit.processingDescription",
+					"Analyzing your uploaded video and preparing automatic cuts.",
+				),
+			);
+
+			try {
+				const suggestion = await suggestAutoEditFromVideo(targetVideoPath);
+				if (options?.isCancelled?.()) {
+					return;
+				}
+
+				const nextTrimRegions = suggestion.trimRegions;
+				setTrimRegions(nextTrimRegions);
+				setSelectedTrimId(nextTrimRegions.length > 0 ? nextTrimRegions[0]?.id ?? null : null);
+				nextTrimIdRef.current = deriveNextId(
+					"trim",
+					nextTrimRegions.map((region) => region.id),
+				);
+
+				if (options?.markImportedFlow) {
+					pendingImportedAutoEditPathRef.current = null;
+					completedImportedAutoEditPathRef.current = targetVideoPath;
+				}
+
+				if (nextTrimRegions.length > 0) {
+					const secondsSaved = Math.max(1, Math.round(suggestion.totalTrimmedMs / 1000));
+					const summary = t(
+						"editor.autoEdit.completeWithCuts",
+						"Auto edit finished. Removed {{count}} quiet sections and saved about {{seconds}} seconds.",
+						{
+							count: nextTrimRegions.length,
+							seconds: secondsSaved,
+						},
+					);
+
+					setAutoEditPhase("done");
+					setAutoEditMessage(summary);
+					toast.success(summary);
+				} else {
+					const summary = t(
+						"editor.autoEdit.completeWithoutCuts",
+						"Auto edit finished. No long quiet sections were detected, so the video was kept as-is.",
+					);
+
+					setAutoEditPhase("done");
+					setAutoEditMessage(summary);
+					toast.message(summary);
+				}
+			} catch (autoEditError) {
+				if (options?.isCancelled?.()) {
+					return;
+				}
+
+				console.warn("Unable to auto edit uploaded video:", autoEditError);
+				if (options?.markImportedFlow) {
+					pendingImportedAutoEditPathRef.current = null;
+					completedImportedAutoEditPathRef.current = targetVideoPath;
+				}
+				setAutoEditPhase("error");
+				setAutoEditMessage(
+					t(
+						"editor.autoEdit.failed",
+						"Auto edit could not analyze the uploaded video. You can still edit it manually.",
+					),
+				);
+				toast.error(
+					t(
+						"editor.autoEdit.failedToast",
+						"Auto edit failed. Manual editing is still available.",
+					),
+				);
+			}
+		},
+		[t],
+	);
+
 	useEffect(() => {
 		let mounted = true;
 		let retryAttempts = 0;
@@ -1840,6 +1960,34 @@ export default function VideoEditor() {
 			}
 		};
 	}, [videoPath]);
+
+	useEffect(() => {
+		if (
+			!videoSourcePath ||
+			loading ||
+			!isPreviewReady ||
+			duration <= 0 ||
+			pendingImportedAutoEditPathRef.current !== videoSourcePath ||
+			completedImportedAutoEditPathRef.current === videoSourcePath
+		) {
+			return;
+		}
+
+		let cancelled = false;
+
+		const runImportedVideoAutoEdit = async () => {
+			await runAutoEditForVideo(videoSourcePath, {
+				markImportedFlow: true,
+				isCancelled: () => cancelled,
+			});
+		};
+
+		void runImportedVideoAutoEdit();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [duration, isPreviewReady, loading, runAutoEditForVideo, videoSourcePath]);
 
 	const normalizedCursorTelemetry = useMemo(() => {
 		if (cursorTelemetry.length === 0) {
@@ -2135,7 +2283,7 @@ export default function VideoEditor() {
 		}
 	}, []);
 
-	const handleAudioAdded = useCallback((span: Span, audioPath: string) => {
+	const handleAudioAdded = useCallback((span: Span, audioPath: string, kind: "music" | "voiceover" = "music") => {
 		const id = `audio-${nextAudioIdRef.current++}`;
 		const newRegion: AudioRegion = {
 			id,
@@ -2143,6 +2291,7 @@ export default function VideoEditor() {
 			endMs: Math.round(span.end),
 			audioPath,
 			volume: 1,
+			kind,
 		};
 		setAudioRegions((prev) => [...prev, newRegion]);
 		setSelectedAudioId(id);
@@ -2175,6 +2324,139 @@ export default function VideoEditor() {
 		},
 		[selectedAudioId],
 	);
+
+	const handleAudioVolumeChange = useCallback(
+		(volume: number) => {
+			if (!selectedAudioId) {
+				return;
+			}
+
+			const normalizedVolume = Math.max(0, Math.min(2, volume));
+			setAudioRegions((prev) =>
+				prev.map((region) =>
+					region.id === selectedAudioId ? { ...region, volume: normalizedVolume } : region,
+				),
+			);
+		},
+		[selectedAudioId],
+	);
+
+	const handleVoiceOverRequested = useCallback(async () => {
+		if (voiceOverState === "saving") {
+			return;
+		}
+
+		if (voiceOverState === "recording") {
+			voiceOverRecorderRef.current?.stop();
+			setVoiceOverState("saving");
+			return;
+		}
+
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			const preferredMimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+				? "audio/webm;codecs=opus"
+				: MediaRecorder.isTypeSupported("audio/webm")
+					? "audio/webm"
+					: "";
+			const recorder = preferredMimeType
+				? new MediaRecorder(stream, { mimeType: preferredMimeType })
+				: new MediaRecorder(stream);
+
+			voiceOverStreamRef.current = stream;
+			voiceOverRecorderRef.current = recorder;
+			voiceOverChunksRef.current = [];
+			voiceOverStartMsRef.current = Math.round(currentTime * 1000);
+
+			recorder.ondataavailable = (event) => {
+				if (event.data && event.data.size > 0) {
+					voiceOverChunksRef.current.push(event.data);
+				}
+			};
+
+			recorder.onerror = () => {
+				toast.error("Voice over recording failed");
+				voiceOverStreamRef.current?.getTracks().forEach((track) => track.stop());
+				voiceOverRecorderRef.current = null;
+				voiceOverStreamRef.current = null;
+				voiceOverChunksRef.current = [];
+				setVoiceOverState("idle");
+			};
+
+			recorder.onstop = async () => {
+				try {
+					const blob = new Blob(voiceOverChunksRef.current, {
+						type: recorder.mimeType || "audio/webm",
+					});
+					voiceOverChunksRef.current = [];
+
+					const saveResult = await window.electronAPI.saveRecordedAudio(
+						await blob.arrayBuffer(),
+						`voiceover-${Date.now()}.weba`,
+					);
+					if (!saveResult.success || !saveResult.path) {
+						throw new Error(saveResult.error || saveResult.message || "Failed to save voice over");
+					}
+
+					const audioSource = await resolveMediaElementSource(saveResult.path);
+					const durationMs = await new Promise<number>((resolve) => {
+						const audio = new Audio();
+						const finish = (value: number) => {
+							audio.pause();
+							audio.src = "";
+							audioSource.revoke();
+							resolve(value);
+						};
+
+						audio.preload = "metadata";
+						audio.addEventListener("loadedmetadata", () => {
+							finish(Math.round(audio.duration * 1000));
+						}, { once: true });
+						audio.addEventListener("error", () => {
+							finish(0);
+						}, { once: true });
+						audio.src = audioSource.src;
+					});
+
+					if (durationMs <= 0) {
+						throw new Error("Could not read recorded voice over");
+					}
+
+					const startMs = Math.max(0, voiceOverStartMsRef.current);
+					handleAudioAdded(
+						{ start: startMs, end: startMs + durationMs },
+						saveResult.path,
+						"voiceover",
+					);
+					toast.success("Voice over added");
+				} catch (error) {
+					toast.error(error instanceof Error ? error.message : "Failed to save voice over");
+				} finally {
+					voiceOverRecorderRef.current = null;
+					voiceOverStreamRef.current?.getTracks().forEach((track) => track.stop());
+					voiceOverStreamRef.current = null;
+					setVoiceOverState("idle");
+				}
+			};
+
+			recorder.start();
+			setVoiceOverState("recording");
+			toast.message("Recording voice over");
+		} catch (error) {
+			console.error("Unable to start voice over recording:", error);
+			toast.error("Microphone access is required for voice over");
+			setVoiceOverState("idle");
+		}
+	}, [currentTime, handleAudioAdded, voiceOverState]);
+
+	const handleManualAutoEdit = useCallback(() => {
+		if (!videoSourcePath) {
+			toast.error("No video loaded");
+			return;
+		}
+
+		void runAutoEditForVideo(videoSourcePath);
+	}, [runAutoEditForVideo, videoSourcePath]);
 
 	const handleSpeedChange = useCallback(
 		(speed: PlaybackSpeed) => {
@@ -2534,6 +2816,8 @@ export default function VideoEditor() {
 
 	useEffect(() => {
 		return () => {
+			voiceOverRecorderRef.current?.state === "recording" && voiceOverRecorderRef.current.stop();
+			voiceOverStreamRef.current?.getTracks().forEach((track) => track.stop());
 			for (const audio of audioElementsRef.current.values()) {
 				audio.pause();
 				audio.src = "";
@@ -3125,7 +3409,9 @@ export default function VideoEditor() {
 	if (loading) {
 		return (
 			<div className="flex h-screen items-center justify-center bg-background">
-				<div className="text-foreground">Loading video...</div>
+				<div className="text-foreground">
+					{t("editor.autoEdit.loadingVideo", "Loading video...")}
+				</div>
 				{projectBrowser}
 				<Toaster theme="dark" className="pointer-events-auto" />
 			</div>
@@ -3569,6 +3855,9 @@ export default function VideoEditor() {
 									onAudioDelete={handleAudioDelete}
 									selectedAudioId={selectedAudioId}
 									onSelectAudio={handleSelectAudio}
+									onAutoEditRequested={handleManualAutoEdit}
+									onVoiceOverRequested={handleVoiceOverRequested}
+									voiceOverState={voiceOverState}
 									annotationRegions={annotationRegions}
 									onAnnotationAdded={handleAnnotationAdded}
 									onAnnotationSpanChange={handleAnnotationSpanChange}
@@ -3683,6 +3972,14 @@ export default function VideoEditor() {
 						}
 						onSpeedChange={handleSpeedChange}
 						onSpeedDelete={handleSpeedDelete}
+						selectedAudioId={selectedAudioId}
+						selectedAudioVolume={selectedAudioRegion?.volume ?? null}
+						selectedAudioName={
+							selectedAudioRegion?.audioPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? null
+						}
+						selectedAudioKind={selectedAudioRegion?.kind ?? null}
+						onAudioVolumeChange={handleAudioVolumeChange}
+						onAudioDelete={handleAudioDelete}
 					/>
 				</div>
 			</div>
@@ -3725,6 +4022,28 @@ export default function VideoEditor() {
 						</div>
 					</div>
 				</>
+			) : null}
+
+			{autoEditPhase === "processing" ? (
+				<div className="pointer-events-auto fixed inset-0 z-[70] flex items-center justify-center bg-black/72 backdrop-blur-sm">
+					<div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#111113]/95 px-7 py-6 shadow-2xl shadow-black/40">
+						<div className="flex items-center gap-4">
+							<div className="h-11 w-11 shrink-0 rounded-full border-2 border-white/10 border-t-[#2563EB] animate-spin" />
+							<div>
+								<h2 className="text-lg font-semibold text-white">
+									{t("editor.autoEdit.processingTitle", "Auto editing video")}
+								</h2>
+								<p className="mt-1 text-sm leading-6 text-slate-300">
+									{autoEditMessage ??
+										t(
+											"editor.autoEdit.processingDescription",
+											"Analyzing your uploaded video and preparing automatic cuts.",
+										)}
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
 			) : null}
 
 			{projectBrowser}

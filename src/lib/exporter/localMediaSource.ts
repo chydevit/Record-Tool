@@ -40,6 +40,7 @@ function inferMimeType(filePath: string) {
 	if (normalized.endsWith(".wav")) return "audio/wav";
 	if (normalized.endsWith(".m4a")) return "audio/mp4";
 	if (normalized.endsWith(".aac")) return "audio/aac";
+	if (normalized.endsWith(".weba")) return "audio/webm";
 	if (normalized.endsWith(".ogg")) return "audio/ogg";
 	if (normalized.endsWith(".opus")) return "audio/ogg;codecs=opus";
 	if (normalized.endsWith(".flac")) return "audio/flac";

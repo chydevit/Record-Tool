@@ -7,13 +7,14 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import type { SaveDialogOptions } from 'electron'
-import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, shell, systemPreferences } from 'electron'
+import type { BrowserWindow as ElectronBrowserWindow, SaveDialogOptions } from 'electron'
+import electron from 'electron'
 import { RECORDINGS_DIR, USER_DATA_PATH } from '../appPaths'
 import { hideCursor, showCursor } from '../cursorHider'
 import { closeCountdownWindow, createCountdownWindow, getCountdownWindow } from '../windows'
 import { resolveWindowsCaptureDisplay } from './windowsCaptureSelection'
 
+const { app, BrowserWindow, desktopCapturer, dialog, ipcMain, shell, systemPreferences } = electron
 const execFileAsync = promisify(execFile)
 const nodeRequire = createRequire(import.meta.url)
 
@@ -118,6 +119,7 @@ type RecordingSessionData = {
   videoPath: string
   webcamPath?: string | null
   timeOffsetMs?: number
+  autoEditRequested?: boolean
 }
 
 type PauseSegment = {
@@ -3122,9 +3124,9 @@ async function startInteractionCapture() {
 
 export function registerIpcHandlers(
   createEditorWindow: () => void,
-  createSourceSelectorWindow: () => BrowserWindow,
-  _getMainWindow: () => BrowserWindow | null,
-  getSourceSelectorWindow: () => BrowserWindow | null,
+  createSourceSelectorWindow: () => ElectronBrowserWindow,
+  _getMainWindow: () => ElectronBrowserWindow | null,
+  getSourceSelectorWindow: () => ElectronBrowserWindow | null,
   onRecordingStateChange?: (recording: boolean, sourceName: string) => void
 ) {
   ipcMain.handle('get-sources', async (_, opts) => {
@@ -4641,6 +4643,28 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
     }
   });
 
+  ipcMain.handle('save-recorded-audio', async (_, audioData: ArrayBuffer, fileName: string) => {
+    try {
+      const recordingsDir = await getRecordingsDir()
+      const safeName = (fileName || `voiceover-${Date.now()}.weba`).replace(/[^a-zA-Z0-9._-]/g, '_')
+      const outputPath = path.join(recordingsDir, safeName)
+      await fs.writeFile(outputPath, Buffer.from(audioData))
+
+      return {
+        success: true,
+        path: outputPath,
+        message: 'Recorded audio saved successfully'
+      }
+    } catch (error) {
+      console.error('Failed to save recorded audio:', error)
+      return {
+        success: false,
+        message: 'Failed to save recorded audio',
+        error: String(error)
+      }
+    }
+  })
+
   ipcMain.handle('open-audio-file-picker', async () => {
     try {
       const result = await dialog.showOpenDialog({
@@ -5030,7 +5054,7 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
       return { success: false, error: String(error), message: 'Failed to open projects folder.' }
     }
   })
-  ipcMain.handle('set-current-video-path', async (_, path: string) => {
+  ipcMain.handle('set-current-video-path', async (_, path: string, options?: { autoEditRequested?: boolean }) => {
     currentVideoPath = normalizeVideoSourcePath(path) ?? path
     const resolvedSession = await resolveRecordingSession(currentVideoPath)
       ?? {
@@ -5039,7 +5063,10 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
         timeOffsetMs: 0,
       }
 
-    currentRecordingSession = resolvedSession
+    currentRecordingSession = {
+      ...resolvedSession,
+      autoEditRequested: Boolean(options?.autoEditRequested),
+    }
 
     if (resolvedSession.webcamPath) {
       await persistRecordingSessionManifest(resolvedSession)
@@ -5049,13 +5076,14 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
     return { success: true, webcamPath: resolvedSession.webcamPath ?? null }
   })
 
-  ipcMain.handle('set-current-recording-session', async (_, session: { videoPath: string; webcamPath?: string | null; timeOffsetMs?: number }) => {
+  ipcMain.handle('set-current-recording-session', async (_, session: { videoPath: string; webcamPath?: string | null; timeOffsetMs?: number; autoEditRequested?: boolean }) => {
     const normalizedVideoPath = normalizeVideoSourcePath(session.videoPath) ?? session.videoPath
     currentVideoPath = normalizedVideoPath
     currentRecordingSession = {
       videoPath: normalizedVideoPath,
       webcamPath: normalizeVideoSourcePath(session.webcamPath ?? null),
       timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
+      autoEditRequested: Boolean(session.autoEditRequested),
     }
     currentProjectPath = null
     await persistRecordingSessionManifest(currentRecordingSession)

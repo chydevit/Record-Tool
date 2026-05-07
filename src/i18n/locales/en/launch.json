@@ -12,7 +12,7 @@
 		"recordingFolder": "Recordings Path: {{path}}",
 		"chooseRecordingsFolder": "Choose recordings path",
 		"folderPath": "Path: /{{name}}/",
-		"openVideoFile": "Open video file",
+		"openVideoFile": "Upload video",
 		"openProject": "Open project",
 		"hideHudFromVideo": "Hide HUD from recording",
 		"showHudInVideo": "Show HUD in recording",
