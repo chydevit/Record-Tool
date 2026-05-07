@@ -5,10 +5,6 @@ Language: English | [Chinese](README.zh-CN.md)
 Crab Records, originally Recordly, is an open-source desktop screen recorder and editor for polished demos, walkthroughs, tutorials, and short product videos. Record a display or window, jump straight into the editor, add zooms, cursor effects, webcam overlays, annotations, captions, and styled backgrounds, then export to MP4 or GIF.
 
 <p align="center">
-  <img src="./demo.gif" width="760" alt="Crab Records demo">
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Linux-111827?style=for-the-badge" alt="macOS Windows Linux" />
   <img src="https://img.shields.io/badge/Electron-39-47848f?style=for-the-badge&logo=electron&logoColor=white" alt="Electron 39" />
   <img src="https://img.shields.io/badge/license-AGPL--3.0-2563eb?style=for-the-badge" alt="AGPL 3.0 license" />
@@ -27,20 +23,6 @@ Crab Records, originally Recordly, is an open-source desktop screen recorder and
 - Project saving and reopening through `.recordly` files.
 - MP4 and GIF export with quality, size, frame-rate, and looping controls.
 - Localized UI strings for English, Chinese, Spanish, and Khmer.
-
-## Screenshots
-
-<p>
-  <img src="./feature1.gif" width="450" alt="Cursor and zoom editing demo">
-</p>
-
-<p>
-  <img src="./feature2.gif" width="450" alt="Webcam overlay demo">
-</p>
-
-<p>
-  <img src="./feature3.png" width="450" alt="Timeline editor screenshot">
-</p>
 
 ## Platform Support
 
