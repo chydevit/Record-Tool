@@ -4,6 +4,7 @@ import {
 	Captions,
 	Download,
 	FolderOpen,
+	Home,
 	MousePointer2,
 	Redo2,
 	Save,
@@ -65,7 +66,6 @@ import {
 import { type EditorEffectSection, SettingsPanel } from "./SettingsPanel";
 import {
 	APP_HEADER_ICON_BUTTON_CLASS,
-	DiscordLinkButton,
 	FeedbackDialog,
 	KeyboardShortcutsDialog,
 } from "./TutorialHelp";
@@ -3447,6 +3447,18 @@ export default function VideoEditor() {
 					className={`flex items-center gap-1.5 justify-self-start ${headerLeftControlsPaddingClass}`}
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
 				>
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={() => void window.electronAPI?.closeEditorWindow?.()}
+						className={APP_HEADER_ICON_BUTTON_CLASS}
+						title={t("editor.goHome", "Go to home")}
+						aria-label={t("editor.goHome", "Go to home")}
+					>
+						<Home className="h-4 w-4" />
+					</Button>
+					<div className="h-5 w-px bg-white/10" />
 					<LanguageSwitcher />
 					<Button
 						type="button"
@@ -3459,7 +3471,6 @@ export default function VideoEditor() {
 					>
 						<FolderOpen className="h-4 w-4" />
 					</Button>
-					<DiscordLinkButton />
 					<KeyboardShortcutsDialog />
 					<FeedbackDialog />
 					<div className="ml-1 h-5 w-px bg-white/10" />

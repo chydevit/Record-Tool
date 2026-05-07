@@ -30,6 +30,22 @@ function toArrayBuffer(data: unknown): ArrayBuffer {
 		return data.slice(0);
 	}
 
+	// Electron IPC serializes Node.js Buffer as { type: 'Buffer', data: number[] }
+	if (
+		data !== null &&
+		typeof data === "object" &&
+		(data as { type?: unknown }).type === "Buffer" &&
+		Array.isArray((data as { data?: unknown }).data)
+	) {
+		const bytes = (data as { data: number[] }).data;
+		const buffer = new ArrayBuffer(bytes.length);
+		const view = new Uint8Array(buffer);
+		for (let i = 0; i < bytes.length; i++) {
+			view[i] = bytes[i] ?? 0;
+		}
+		return buffer;
+	}
+
 	throw new Error("Unsupported file payload returned from main process.");
 }
 

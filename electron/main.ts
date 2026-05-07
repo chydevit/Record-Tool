@@ -129,6 +129,21 @@ ipcMain.on("set-has-unsaved-changes", (_event, hasChanges: boolean) => {
 	editorHasUnsavedChanges = hasChanges;
 });
 
+ipcMain.handle("close-editor-window", () => {
+	if (mainWindow && !mainWindow.isDestroyed()) {
+		closeEditorWindowBypassingUnsavedPrompt(mainWindow);
+		mainWindow = null;
+	}
+	// Ensure HUD overlay is visible
+	const hud = getHudOverlayWindow();
+	if (hud && !hud.isDestroyed()) {
+		hud.show();
+		hud.focus();
+	} else {
+		createWindow();
+	}
+});
+
 function createWindow() {
 	if (!app.isReady()) {
 		void app.whenReady().then(() => {
