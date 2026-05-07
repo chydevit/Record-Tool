@@ -118,7 +118,7 @@ export default function App() {
 							<img
 								src={crabLogo}
 								alt={t("app.name", "Crab Records")}
-								className="h-16 w-16 rounded-xl object-cover"
+								className="h-24 w-24 rounded-xl object-cover"
 							/>
 							<div>
 								<h1 className="text-xl font-semibold tracking-tight">{t("app.name", "Crab Records")}</h1>
