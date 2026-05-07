@@ -7,16 +7,33 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import type { BrowserWindow as ElectronBrowserWindow, SaveDialogOptions } from 'electron'
-import electron from 'electron'
+import type {
+	App,
+	BrowserWindow as ElectronBrowserWindow,
+	DesktopCapturer,
+	Dialog,
+	IpcMain,
+	SaveDialogOptions,
+	Shell,
+	SystemPreferences,
+} from 'electron'
 import { RECORDINGS_DIR, USER_DATA_PATH } from '../appPaths'
 import { hideCursor, showCursor } from '../cursorHider'
 import { closeCountdownWindow, createCountdownWindow, getCountdownWindow } from '../windows'
 import { resolveWindowsCaptureDisplay } from './windowsCaptureSelection'
 
-const { app, BrowserWindow, desktopCapturer, dialog, ipcMain, shell, systemPreferences } = electron
 const execFileAsync = promisify(execFile)
 const nodeRequire = createRequire(import.meta.url)
+const { app, BrowserWindow, desktopCapturer, dialog, ipcMain, shell, systemPreferences } =
+	nodeRequire("electron") as {
+		app: App
+		BrowserWindow: typeof ElectronBrowserWindow
+		desktopCapturer: DesktopCapturer
+		dialog: Dialog
+		ipcMain: IpcMain
+		shell: Shell
+		systemPreferences: SystemPreferences
+	}
 
 const PROJECT_FILE_EXTENSION = 'recordly'
 const LEGACY_PROJECT_FILE_EXTENSIONS = ['openscreen']

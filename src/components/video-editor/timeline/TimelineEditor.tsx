@@ -25,7 +25,7 @@ import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
 import type { ZoomRegion, TrimRegion, AnnotationRegion, SpeedRegion, AudioRegion, CursorTelemetryPoint, ZoomFocus } from "../types";
-import { detectInteractionCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
+import { normalizeCursorTelemetry, suggestInteractionZooms } from "./zoomSuggestionUtils";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
@@ -1048,12 +1048,7 @@ export default function TimelineEditor({
       return;
     }
 
-    const reservedSpans = [...zoomRegions]
-      .map((region) => ({ start: region.startMs, end: region.endMs }))
-      .sort((a, b) => a.start - b.start);
-
     const normalizedSamples = normalizeCursorTelemetry(cursorTelemetry, totalMs);
-
     if (normalizedSamples.length < 2) {
       toast.info("No usable cursor telemetry", {
         description: "The recording does not include enough cursor movement data.",
@@ -1061,54 +1056,31 @@ export default function TimelineEditor({
       return;
     }
 
-    const dwellCandidates = detectInteractionCandidates(normalizedSamples);
-
-    if (dwellCandidates.length === 0) {
-      toast.info("No clear interaction moments found", {
-        description: "Try a recording with pauses or clicks around important actions.",
-      });
-      return;
-    }
-
-    const sortedCandidates = [...dwellCandidates].sort((a, b) => b.strength - a.strength);
-    const acceptedCenters: number[] = [];
-
-    let addedCount = 0;
-
-    sortedCandidates.forEach((candidate) => {
-      const tooCloseToAccepted = acceptedCenters.some(
-        (center) => Math.abs(center - candidate.centerTimeMs) < SUGGESTION_SPACING_MS,
-      );
-
-      if (tooCloseToAccepted) {
-        return;
-      }
-
-      const centeredStart = Math.round(candidate.centerTimeMs - defaultDuration / 2);
-      const candidateStart = Math.max(0, Math.min(centeredStart, totalMs - defaultDuration));
-      const candidateEnd = candidateStart + defaultDuration;
-      const hasOverlap = reservedSpans.some(
-        (span) => candidateEnd > span.start && candidateStart < span.end,
-      );
-
-      if (hasOverlap) {
-        return;
-      }
-
-      reservedSpans.push({ start: candidateStart, end: candidateEnd });
-      acceptedCenters.push(candidate.centerTimeMs);
-      onZoomSuggested({ start: candidateStart, end: candidateEnd }, candidate.focus);
-      addedCount += 1;
+    const suggestions = suggestInteractionZooms({
+      telemetry: normalizedSamples,
+      totalMs,
+      defaultDurationMs: defaultDuration,
+      existingSpans: zoomRegions.map((region) => ({ start: region.startMs, end: region.endMs })),
+      spacingMs: SUGGESTION_SPACING_MS,
     });
 
-    if (addedCount === 0) {
-      toast.info("No auto-zoom slots available", {
-        description: "Detected dwell points overlap existing zoom regions.",
+    if (suggestions.length === 0) {
+      toast.info("No clear interaction moments found", {
+        description: "Detected dwell points overlap existing zoom regions or were too weak to use.",
       });
       return;
     }
 
-    toast.success(`Added ${addedCount} interaction-based zoom suggestion${addedCount === 1 ? "" : "s"}`);
+    suggestions.forEach((suggestion) => {
+      onZoomSuggested(
+        { start: suggestion.startMs, end: suggestion.endMs },
+        suggestion.focus,
+      );
+    });
+
+    toast.success(
+      `Added ${suggestions.length} interaction-based zoom suggestion${suggestions.length === 1 ? "" : "s"}`,
+    );
   }, [
     videoDuration,
     totalMs,

@@ -1,5 +1,9 @@
+import { createRequire } from "node:module";
 import path from "node:path";
-import { app } from "electron";
+import type { App } from "electron";
+
+const nodeRequire = createRequire(import.meta.url);
+const { app } = nodeRequire("electron") as { app: App };
 
 if (process.env["VITE_DEV_SERVER_URL"]) {
 	const devUserDataPath = path.join(app.getPath("appData"), "CrabRecords-dev");

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { CursorTelemetryPoint } from "../types";
-import { detectInteractionCandidates, detectZoomDwellCandidates } from "./zoomSuggestionUtils";
+import {
+  detectInteractionCandidates,
+  detectZoomDwellCandidates,
+  suggestInteractionZooms,
+} from "./zoomSuggestionUtils";
 
 describe("zoom suggestion cursor detection", () => {
   it("detects pointer hover even when cursor drift breaks dwell detection", () => {
@@ -41,5 +45,32 @@ describe("zoom suggestion cursor detection", () => {
 
     expect(hoverCandidates).toHaveLength(1);
     expect(hoverCandidates[0]?.centerTimeMs).toBe(230);
+  });
+
+  it("builds non-overlapping zoom suggestions from interaction telemetry", () => {
+    const samples: CursorTelemetryPoint[] = [
+      { timeMs: 0, cx: 0.2, cy: 0.3, interactionType: "move", cursorType: "pointer" },
+      { timeMs: 200, cx: 0.2, cy: 0.3, interactionType: "move", cursorType: "pointer" },
+      { timeMs: 450, cx: 0.2, cy: 0.3, interactionType: "move", cursorType: "pointer" },
+      { timeMs: 700, cx: 0.2, cy: 0.3, interactionType: "move", cursorType: "pointer" },
+      { timeMs: 2400, cx: 0.7, cy: 0.55, interactionType: "click", cursorType: "pointer" },
+      { timeMs: 2500, cx: 0.7, cy: 0.55, interactionType: "move", cursorType: "pointer" },
+      { timeMs: 2700, cx: 0.7, cy: 0.55, interactionType: "move", cursorType: "pointer" },
+    ];
+
+    const suggestions = suggestInteractionZooms({
+      telemetry: samples,
+      totalMs: 4000,
+      defaultDurationMs: 1000,
+      existingSpans: [{ start: 1800, end: 2800 }],
+      spacingMs: 1200,
+    });
+
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toMatchObject({
+      startMs: 0,
+      endMs: 1000,
+      focus: expect.objectContaining({ cx: 0.2, cy: 0.3 }),
+    });
   });
 });

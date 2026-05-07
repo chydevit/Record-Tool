@@ -1,9 +1,21 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
-import { app, BrowserWindow, dialog } from "electron";
+import type {
+	App,
+	BrowserWindow as ElectronBrowserWindow,
+	Dialog,
+	MessageBoxOptions,
+	MessageBoxReturnValue,
+} from "electron";
 import { autoUpdater } from "electron-updater";
-import type { MessageBoxOptions, MessageBoxReturnValue } from "electron";
 import { USER_DATA_PATH } from "./appPaths";
+
+const nodeRequire = createRequire(import.meta.url);
+const { app, dialog } = nodeRequire("electron") as {
+	app: App;
+	dialog: Dialog;
+};
 
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 export const UPDATE_REMINDER_DELAY_MS = 3 * 60 * 60 * 1000;
@@ -138,13 +150,13 @@ export function isAutoUpdateFeatureEnabled() {
 	return !AUTO_UPDATES_DISABLED;
 }
 
-function getDialogWindow(getMainWindow: () => BrowserWindow | null) {
+function getDialogWindow(getMainWindow: () => ElectronBrowserWindow | null) {
 	const window = getMainWindow();
 	return window && !window.isDestroyed() ? window : undefined;
 }
 
 function showMessageBox(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	options: MessageBoxOptions,
 ): Promise<MessageBoxReturnValue> {
 	const window = getDialogWindow(getMainWindow);
@@ -252,7 +264,7 @@ export function getUpdateStatusSummary() {
 	return updateStatusSummary;
 }
 
-async function showNoUpdatesDialog(getMainWindow: () => BrowserWindow | null) {
+async function showNoUpdatesDialog(getMainWindow: () => ElectronBrowserWindow | null) {
 	await showMessageBox(getMainWindow, {
 		type: "info",
 		title: "No Updates Available",
@@ -261,7 +273,10 @@ async function showNoUpdatesDialog(getMainWindow: () => BrowserWindow | null) {
 	});
 }
 
-async function showUpdateErrorDialog(getMainWindow: () => BrowserWindow | null, error: unknown) {
+async function showUpdateErrorDialog(
+	getMainWindow: () => ElectronBrowserWindow | null,
+	error: unknown,
+) {
 	await showMessageBox(getMainWindow, {
 		type: "error",
 		title: "Update Check Failed",
@@ -330,7 +345,7 @@ function simulateDevPreviewDownload(sendToRenderer?: UpdateToastSender) {
 
 
 export function dismissUpdateToast(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	sendToRenderer?: UpdateToastSender,
 ) {
 	if (currentToastPayload?.isPreview) {
@@ -423,7 +438,7 @@ export async function downloadAvailableUpdate(sendToRenderer?: UpdateToastSender
 }
 
 export function deferUpdateReminder(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	sendToRenderer?: UpdateToastSender,
 	delayMs = UPDATE_REMINDER_DELAY_MS,
 ) {
@@ -493,7 +508,7 @@ export function previewUpdateToast(sendToRenderer: UpdateToastSender) {
 }
 
 async function showAvailableUpdateDialog(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	version: string,
 	sendToRenderer?: UpdateToastSender,
 ) {
@@ -522,7 +537,7 @@ async function showAvailableUpdateDialog(
 }
 
 async function showDownloadedUpdateDialog(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	version: string,
     options?: { isPreview?: boolean },
 ) {
@@ -577,7 +592,7 @@ async function showDownloadedUpdateDialog(
 }
 
 export async function checkForAppUpdates(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	options?: { manual?: boolean },
 ) {
 	if (!canUseAutoUpdates()) {
@@ -638,7 +653,7 @@ export async function checkForAppUpdates(
 }
 
 export function setupAutoUpdates(
-	getMainWindow: () => BrowserWindow | null,
+	getMainWindow: () => ElectronBrowserWindow | null,
 	sendToRenderer: UpdateToastSender,
 ) {
 	if (updaterInitialized) {

@@ -14,6 +14,14 @@ export interface CursorInteractionCandidate extends ZoomDwellCandidate {
   kind: 'dwell' | 'click-like' | 'double-click-like' | 'text-focus-like' | 'pointer-hover' | 'dropdown-open' | 'text-selection' | 'text-field-click';
 }
 
+export interface InteractionZoomSuggestion {
+  startMs: number;
+  endMs: number;
+  focus: ZoomFocus;
+  strength: number;
+  kind: CursorInteractionCandidate["kind"];
+}
+
 const MIN_HOVER_DURATION_MS = 350;
 const HOVER_CURSOR_GAP_TOLERANCE_MS = 180;
 
@@ -337,5 +345,72 @@ function classifyPostClickBehavior(
   }
 
   return 'click-like';
+}
+
+export function suggestInteractionZooms(options: {
+  telemetry: CursorTelemetryPoint[];
+  totalMs: number;
+  defaultDurationMs: number;
+  existingSpans?: Array<{ start: number; end: number }>;
+  spacingMs?: number;
+}): InteractionZoomSuggestion[] {
+  const {
+    telemetry,
+    totalMs,
+    defaultDurationMs,
+    existingSpans = [],
+    spacingMs = 1800,
+  } = options;
+
+  if (totalMs <= 0 || defaultDurationMs <= 0 || telemetry.length < 2) {
+    return [];
+  }
+
+  const normalizedSamples = normalizeCursorTelemetry(telemetry, totalMs);
+  if (normalizedSamples.length < 2) {
+    return [];
+  }
+
+  const dwellCandidates = detectInteractionCandidates(normalizedSamples);
+  if (dwellCandidates.length === 0) {
+    return [];
+  }
+
+  const sortedCandidates = [...dwellCandidates].sort((a, b) => b.strength - a.strength);
+  const reservedSpans = [...existingSpans].sort((a, b) => a.start - b.start);
+  const acceptedCenters: number[] = [];
+  const suggestions: InteractionZoomSuggestion[] = [];
+
+  for (const candidate of sortedCandidates) {
+    const tooCloseToAccepted = acceptedCenters.some(
+      (center) => Math.abs(center - candidate.centerTimeMs) < spacingMs,
+    );
+    if (tooCloseToAccepted) {
+      continue;
+    }
+
+    const centeredStart = Math.round(candidate.centerTimeMs - defaultDurationMs / 2);
+    const candidateStart = Math.max(0, Math.min(centeredStart, totalMs - defaultDurationMs));
+    const candidateEnd = candidateStart + defaultDurationMs;
+    const hasOverlap = reservedSpans.some(
+      (span) => candidateEnd > span.start && candidateStart < span.end,
+    );
+
+    if (hasOverlap) {
+      continue;
+    }
+
+    reservedSpans.push({ start: candidateStart, end: candidateEnd });
+    acceptedCenters.push(candidate.centerTimeMs);
+    suggestions.push({
+      startMs: candidateStart,
+      endMs: candidateEnd,
+      focus: candidate.focus,
+      strength: candidate.strength,
+      kind: candidate.kind,
+    });
+  }
+
+  return suggestions.sort((a, b) => a.startMs - b.startMs);
 }
 

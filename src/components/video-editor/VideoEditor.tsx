@@ -72,6 +72,7 @@ import {
 import TimelineEditor from "./timeline/TimelineEditor";
 import {
 	normalizeCursorTelemetry,
+	suggestInteractionZooms,
 } from "./timeline/zoomSuggestionUtils";
 import {
 	type AnnotationRegion,
@@ -138,6 +139,8 @@ type PendingExportSave = {
 type AutoEditPhase = "idle" | "processing" | "done" | "error";
 
 const MP4_EXPORT_FRAME_RATE = 60;
+const AUTO_EDIT_ZOOM_DURATION_MS = 1000;
+const AUTO_EDIT_ZOOM_SPACING_MS = 1800;
 
 function cloneStructured<T>(value: T): T {
 	return globalThis.structuredClone(value);
@@ -1828,19 +1831,60 @@ export default function VideoEditor() {
 				}
 
 				const nextTrimRegions = suggestion.trimRegions;
+				const totalMs = Math.max(0, Math.round(duration * 1000));
+				const zoomSuggestions = suggestInteractionZooms({
+					telemetry: cursorTelemetry,
+					totalMs,
+					defaultDurationMs: Math.min(AUTO_EDIT_ZOOM_DURATION_MS, totalMs),
+					existingSpans: zoomRegions.map((region) => ({
+						start: region.startMs,
+						end: region.endMs,
+					})),
+					spacingMs: AUTO_EDIT_ZOOM_SPACING_MS,
+				});
+				const nextZoomSuggestions =
+					zoomSuggestions.length > 0
+						? zoomSuggestions.map((region) => ({
+								id: `zoom-${nextZoomIdRef.current++}`,
+								startMs: Math.round(region.startMs),
+								endMs: Math.round(region.endMs),
+								depth: DEFAULT_ZOOM_DEPTH,
+								focus: clampFocusToDepth(region.focus, DEFAULT_ZOOM_DEPTH),
+							}))
+						: [];
+
 				setTrimRegions(nextTrimRegions);
 				setSelectedTrimId(nextTrimRegions.length > 0 ? nextTrimRegions[0]?.id ?? null : null);
 				nextTrimIdRef.current = deriveNextId(
 					"trim",
 					nextTrimRegions.map((region) => region.id),
 				);
+				if (nextZoomSuggestions.length > 0) {
+					setZoomRegions((prev) => [...prev, ...nextZoomSuggestions]);
+					setSelectedZoomId(nextZoomSuggestions[0]?.id ?? null);
+				}
 
 				if (options?.markImportedFlow) {
 					pendingImportedAutoEditPathRef.current = null;
 					completedImportedAutoEditPathRef.current = targetVideoPath;
 				}
 
-				if (nextTrimRegions.length > 0) {
+				if (nextTrimRegions.length > 0 && nextZoomSuggestions.length > 0) {
+					const secondsSaved = Math.max(1, Math.round(suggestion.totalTrimmedMs / 1000));
+					const summary = t(
+						"editor.autoEdit.completeWithCutsAndZooms",
+						"Auto edit finished. Removed {{count}} quiet sections, saved about {{seconds}} seconds, and added {{zooms}} zoom suggestions.",
+						{
+							count: nextTrimRegions.length,
+							seconds: secondsSaved,
+							zooms: nextZoomSuggestions.length,
+						},
+					);
+
+					setAutoEditPhase("done");
+					setAutoEditMessage(summary);
+					toast.success(summary);
+				} else if (nextTrimRegions.length > 0) {
 					const secondsSaved = Math.max(1, Math.round(suggestion.totalTrimmedMs / 1000));
 					const summary = t(
 						"editor.autoEdit.completeWithCuts",
@@ -1848,6 +1892,18 @@ export default function VideoEditor() {
 						{
 							count: nextTrimRegions.length,
 							seconds: secondsSaved,
+						},
+					);
+
+					setAutoEditPhase("done");
+					setAutoEditMessage(summary);
+					toast.success(summary);
+				} else if (nextZoomSuggestions.length > 0) {
+					const summary = t(
+						"editor.autoEdit.completeWithZooms",
+						"Auto edit finished. Added {{count}} zoom suggestions from cursor activity.",
+						{
+							count: nextZoomSuggestions.length,
 						},
 					);
 
@@ -1889,7 +1945,7 @@ export default function VideoEditor() {
 				);
 			}
 		},
-		[t],
+		[cursorTelemetry, duration, t, zoomRegions],
 	);
 
 	useEffect(() => {

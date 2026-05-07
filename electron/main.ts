@@ -1,18 +1,12 @@
+import { createRequire } from "node:module";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-	app,
-	BrowserWindow,
-	desktopCapturer,
-	dialog,
-	ipcMain,
-	Menu,
-	nativeImage,
-	Notification,
-	session,
-	systemPreferences,
-	Tray,
+import type {
+	BrowserWindow as ElectronBrowserWindow,
+	MenuItemConstructorOptions,
+	Notification as ElectronNotification,
+	Tray as ElectronTray,
 } from "electron";
 import { RECORDINGS_DIR } from "./appPaths";
 import { showCursor } from "./cursorHider";
@@ -44,6 +38,21 @@ import {
 	hideUpdateToastWindow,
 	showUpdateToastWindow,
 } from "./windows";
+
+const nodeRequire = createRequire(import.meta.url);
+const {
+	app,
+	BrowserWindow,
+	desktopCapturer,
+	dialog,
+	ipcMain,
+	Menu,
+	nativeImage,
+	Notification,
+	session,
+	systemPreferences,
+	Tray,
+} = nodeRequire("electron") as any;
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -83,13 +92,13 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 	: RENDERER_DIST;
 
 // Window references
-let mainWindow: BrowserWindow | null = null;
-let sourceSelectorWindow: BrowserWindow | null = null;
-let tray: Tray | null = null;
+let mainWindow: ElectronBrowserWindow | null = null;
+let sourceSelectorWindow: ElectronBrowserWindow | null = null;
+let tray: ElectronTray | null = null;
 let selectedSourceName = "";
 let editorHasUnsavedChanges = false;
 let isForceClosing = false;
-let activeUpdateNotification: Notification | null = null;
+let activeUpdateNotification: ElectronNotification | null = null;
 let activeUpdateNotificationKey: string | null = null;
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -97,7 +106,7 @@ if (!hasSingleInstanceLock) {
 	app.quit();
 }
 
-function closeEditorWindowBypassingUnsavedPrompt(window: BrowserWindow | null) {
+function closeEditorWindowBypassingUnsavedPrompt(window: ElectronBrowserWindow | null) {
 	if (!window || window.isDestroyed()) {
 		return;
 	}
@@ -189,7 +198,7 @@ function focusOrCreateMainWindow() {
 	}
 }
 
-function isEditorWindow(window: BrowserWindow) {
+function isEditorWindow(window: ElectronBrowserWindow) {
 	return window.webContents.getURL().includes("windowType=editor");
 }
 
@@ -220,7 +229,7 @@ function setupApplicationMenu() {
 		return;
 	}
 
-	const template: Electron.MenuItemConstructorOptions[] = [];
+	const template: MenuItemConstructorOptions[] = [];
 	template.push({
 		label: app.name,
 		submenu: [

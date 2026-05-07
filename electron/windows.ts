@@ -2,11 +2,20 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, ipcMain } from "electron";
+import type {
+	App,
+	BrowserWindow as ElectronBrowserWindow,
+	IpcMain,
+} from "electron";
 import { USER_DATA_PATH } from "./appPaths";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nodeRequire = createRequire(import.meta.url);
+const { app, BrowserWindow, ipcMain } = nodeRequire("electron") as {
+	app: App;
+	BrowserWindow: typeof ElectronBrowserWindow;
+	ipcMain: IpcMain;
+};
 
 const APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -17,11 +26,11 @@ const WINDOW_ICON_PATH = path.join(
 	"crab-records-512.png",
 );
 
-let hudOverlayWindow: BrowserWindow | null = null;
+let hudOverlayWindow: ElectronBrowserWindow | null = null;
 let hudOverlayHiddenFromCapture = true;
 let hudOverlayCaptureProtectionLoaded = false;
-let countdownWindow: BrowserWindow | null = null;
-let updateToastWindow: BrowserWindow | null = null;
+let countdownWindow: ElectronBrowserWindow | null = null;
+let updateToastWindow: ElectronBrowserWindow | null = null;
 
 function shouldExposeHudInTaskbar(): boolean {
 	return process.platform === "win32";
@@ -293,7 +302,7 @@ ipcMain.handle("set-hud-overlay-capture-protection", (_event, enabled: boolean) 
 	};
 });
 
-export function createHudOverlayWindow(): BrowserWindow {
+export function createHudOverlayWindow(): ElectronBrowserWindow {
 	loadHudOverlayCaptureProtectionSetting();
 	const initialBounds = getHudOverlayBounds(false);
 
@@ -364,11 +373,11 @@ export function createHudOverlayWindow(): BrowserWindow {
 	return win;
 }
 
-export function getHudOverlayWindow(): BrowserWindow | null {
+export function getHudOverlayWindow(): ElectronBrowserWindow | null {
 	return hudOverlayWindow && !hudOverlayWindow.isDestroyed() ? hudOverlayWindow : null;
 }
 
-export function createUpdateToastWindow(): BrowserWindow {
+export function createUpdateToastWindow(): ElectronBrowserWindow {
 	const initialBounds = getUpdateToastBounds();
 	const parentWindow =
 		process.platform === "darwin" && hudOverlayWindow && !hudOverlayWindow.isDestroyed()
@@ -423,11 +432,11 @@ export function createUpdateToastWindow(): BrowserWindow {
 	return win;
 }
 
-export function getUpdateToastWindow(): BrowserWindow | null {
+export function getUpdateToastWindow(): ElectronBrowserWindow | null {
 	return updateToastWindow && !updateToastWindow.isDestroyed() ? updateToastWindow : null;
 }
 
-export function showUpdateToastWindow(): BrowserWindow {
+export function showUpdateToastWindow(): ElectronBrowserWindow {
 	const win = getUpdateToastWindow() ?? createUpdateToastWindow();
 	positionUpdateToastWindow();
 	if (!win.isVisible()) {
@@ -452,7 +461,7 @@ export function hideUpdateToastWindow(): void {
 	updateToastWindow.hide();
 }
 
-export function createEditorWindow(): BrowserWindow {
+export function createEditorWindow(): ElectronBrowserWindow {
 	const isMac = process.platform === "darwin";
 	const { workArea, workAreaSize } = getScreen().getPrimaryDisplay();
 	const initialWidth = isMac ? Math.round(workAreaSize.width * 0.85) : workArea.width;
@@ -533,7 +542,7 @@ export function createEditorWindow(): BrowserWindow {
 	return win;
 }
 
-export function createSourceSelectorWindow(): BrowserWindow {
+export function createSourceSelectorWindow(): ElectronBrowserWindow {
 	const { width, height } = getScreen().getPrimaryDisplay().workAreaSize;
 
 	const win = new BrowserWindow({
@@ -578,7 +587,7 @@ export function createSourceSelectorWindow(): BrowserWindow {
 	return win;
 }
 
-export function createCountdownWindow(): BrowserWindow {
+export function createCountdownWindow(): ElectronBrowserWindow {
 	const primaryDisplay = getScreen().getPrimaryDisplay();
 	const { width, height } = primaryDisplay.workAreaSize;
 
@@ -633,7 +642,7 @@ export function createCountdownWindow(): BrowserWindow {
 	return win;
 }
 
-export function getCountdownWindow(): BrowserWindow | null {
+export function getCountdownWindow(): ElectronBrowserWindow | null {
 	return countdownWindow;
 }
 
