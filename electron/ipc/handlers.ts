@@ -220,6 +220,17 @@ function normalizeDesktopSourceName(value: string) {
   return value.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
+function safeScreenshotSourceName(value: string | null | undefined) {
+  const normalized = String(value || 'source')
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return normalized.slice(0, 80) || 'source'
+}
+
 function hasUsableSourceThumbnail(
   thumbnail:
     | {
@@ -3324,6 +3335,45 @@ export function registerIpcHandlers(
       sourceSelectorWin.close()
     }
     return selectedSource
+  })
+
+  ipcMain.handle('capture-source-screenshot', async (_, source: SelectedSource | null | undefined) => {
+    try {
+      const targetSource = source?.id ? source : selectedSource
+      if (!targetSource?.id) {
+        return { success: false, error: 'No capture source is selected.' }
+      }
+
+      const bounds = getDisplayBoundsForSource(targetSource)
+      const thumbnailSize = {
+        width: Math.max(1, Math.round(bounds?.width ?? 1920)),
+        height: Math.max(1, Math.round(bounds?.height ?? 1080)),
+      }
+      const sources = await desktopCapturer.getSources({
+        types: [targetSource.id.startsWith('window:') ? 'window' : 'screen'],
+        thumbnailSize,
+        fetchWindowIcons: false,
+      })
+      const match =
+        sources.find((candidate) => candidate.id === targetSource.id) ??
+        sources.find((candidate) => candidate.name === targetSource.name)
+
+      if (!match || !hasUsableSourceThumbnail(match.thumbnail)) {
+        return { success: false, error: 'Unable to capture a screenshot for this source.' }
+      }
+
+      const recordingsDir = await getRecordingsDir()
+      const screenshotsDir = path.join(recordingsDir, 'Screenshots')
+      await fs.mkdir(screenshotsDir, { recursive: true })
+      const filename = `screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}-${safeScreenshotSourceName(targetSource.name)}.png`
+      const outputPath = path.join(screenshotsDir, filename)
+      await fs.writeFile(outputPath, match.thumbnail.toPNG())
+
+      return { success: true, path: outputPath }
+    } catch (error) {
+      console.error('Failed to capture source screenshot:', error)
+      return { success: false, error: String(error) }
+    }
   })
 
   ipcMain.handle('show-source-highlight', async (_, source: SelectedSource) => {

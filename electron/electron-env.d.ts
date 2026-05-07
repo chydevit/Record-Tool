@@ -74,6 +74,9 @@ interface Window {
 			enabled: boolean,
 		) => Promise<{ success: boolean; enabled: boolean }>;
 		getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>;
+		captureSourceScreenshot: (
+			source: ProcessedDesktopSource | null | undefined,
+		) => Promise<{ success: boolean; path?: string; error?: string }>;
 		switchToEditor: () => Promise<void>;
 		closeEditorWindow: () => Promise<void>;
 		openSourceSelector: () => Promise<void>;

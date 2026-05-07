@@ -43,6 +43,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);
 	},
+	captureSourceScreenshot: (source: unknown) => {
+		return ipcRenderer.invoke("capture-source-screenshot", source);
+	},
 	switchToEditor: () => {
 		return ipcRenderer.invoke("switch-to-editor");
 	},

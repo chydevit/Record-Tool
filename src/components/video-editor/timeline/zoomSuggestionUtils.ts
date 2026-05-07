@@ -11,7 +11,76 @@ export interface ZoomDwellCandidate {
 }
 
 export interface CursorInteractionCandidate extends ZoomDwellCandidate {
-  kind: 'dwell' | 'click-like' | 'double-click-like' | 'text-focus-like' | 'dropdown-open' | 'text-selection' | 'text-field-click';
+  kind: 'dwell' | 'click-like' | 'double-click-like' | 'text-focus-like' | 'pointer-hover' | 'dropdown-open' | 'text-selection' | 'text-field-click';
+}
+
+const MIN_HOVER_DURATION_MS = 350;
+const HOVER_CURSOR_GAP_TOLERANCE_MS = 180;
+
+function isHoverCursor(sample: CursorTelemetryPoint): boolean {
+  return sample.cursorType === 'pointer' || sample.cursorType === 'text';
+}
+
+function detectHoverCandidates(samples: CursorTelemetryPoint[]): CursorInteractionCandidate[] {
+  const hoverCandidates: CursorInteractionCandidate[] = [];
+  let runStartIndex = -1;
+  let lastHoverIndex = -1;
+
+  const pushRunIfHover = (endIndexExclusive: number) => {
+    if (runStartIndex < 0 || lastHoverIndex < 0) {
+      return;
+    }
+
+    const start = samples[runStartIndex];
+    const end = samples[lastHoverIndex];
+    const runDuration = end.timeMs - start.timeMs;
+    if (runDuration < MIN_HOVER_DURATION_MS) {
+      return;
+    }
+
+    const runSamples = samples.slice(runStartIndex, endIndexExclusive).filter(isHoverCursor);
+    if (runSamples.length < 2) {
+      return;
+    }
+
+    const avgCx = runSamples.reduce((sum, sample) => sum + sample.cx, 0) / runSamples.length;
+    const avgCy = runSamples.reduce((sum, sample) => sum + sample.cy, 0) / runSamples.length;
+    const textSamples = runSamples.filter((sample) => sample.cursorType === 'text').length;
+    const pointerSamples = runSamples.length - textSamples;
+    const kind: CursorInteractionCandidate['kind'] = textSamples > pointerSamples ? 'text-focus-like' : 'pointer-hover';
+
+    hoverCandidates.push({
+      centerTimeMs: Math.round((start.timeMs + end.timeMs) / 2),
+      focus: { cx: avgCx, cy: avgCy },
+      strength: Math.min(runDuration, MAX_DWELL_DURATION_MS) + 300,
+      kind,
+    });
+  };
+
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = samples[index];
+
+    if (isHoverCursor(sample)) {
+      if (runStartIndex < 0) {
+        runStartIndex = index;
+      }
+      lastHoverIndex = index;
+      continue;
+    }
+
+    if (
+      runStartIndex >= 0 &&
+      lastHoverIndex >= 0 &&
+      sample.timeMs - samples[lastHoverIndex].timeMs > HOVER_CURSOR_GAP_TOLERANCE_MS
+    ) {
+      pushRunIfHover(index);
+      runStartIndex = -1;
+      lastHoverIndex = -1;
+    }
+  }
+
+  pushRunIfHover(samples.length);
+  return hoverCandidates;
 }
 
 function normalizeTelemetrySample(sample: CursorTelemetryPoint, totalMs: number): CursorTelemetryPoint {
@@ -149,7 +218,10 @@ export function detectInteractionCandidates(samples: CursorTelemetryPoint[]): Cu
     });
   }
 
-  // --- Phase 2: Dwell-based heuristic candidates ---
+  // --- Phase 2: Hover cursor heuristic candidates ---
+  const hoverCandidates = detectHoverCandidates(samples);
+
+  // --- Phase 3: Dwell-based heuristic candidates ---
   const dwellCandidates = detectZoomDwellCandidates(samples)
     .map<CursorInteractionCandidate>((candidate) => {
       if (candidate.strength >= 1100) {
@@ -161,7 +233,7 @@ export function detectInteractionCandidates(samples: CursorTelemetryPoint[]): Cu
       return { ...candidate, kind: 'dwell' };
     });
 
-  // --- Phase 3: Synthetic double-click detection from dwell pairs ---
+  // --- Phase 4: Synthetic double-click detection from dwell pairs ---
   const doubleClickCandidates: CursorInteractionCandidate[] = [];
   const sortedByTime = [...dwellCandidates].sort((a, b) => a.centerTimeMs - b.centerTimeMs);
 
@@ -185,7 +257,7 @@ export function detectInteractionCandidates(samples: CursorTelemetryPoint[]): Cu
     }
   }
 
-  return [...explicitInteractionCandidates, ...dwellCandidates, ...doubleClickCandidates];
+  return [...explicitInteractionCandidates, ...hoverCandidates, ...dwellCandidates, ...doubleClickCandidates];
 }
 
 /**

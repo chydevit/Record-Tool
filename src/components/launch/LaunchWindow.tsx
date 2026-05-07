@@ -1,11 +1,15 @@
 import {
 	AppWindow,
 	ArrowUpCircle,
-	ChevronUp,
+	Camera,
+	ChevronDown,
 	CheckCircle2,
+	Crosshair,
+	Droplets,
 	Eye,
 	EyeOff,
 	FolderOpen,
+	Focus,
 	Languages,
 	Mic,
 	MicOff,
@@ -13,6 +17,7 @@ import {
 	Monitor,
 	MoreVertical,
 	Pause,
+	Pencil,
 	Play,
 	RefreshCw,
 	Square,
@@ -28,6 +33,7 @@ import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RxDragHandleDots2 } from "react-icons/rx";
+import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
 import type { AppLocale } from "@/i18n/config";
 import { SUPPORTED_LOCALES } from "@/i18n/config";
@@ -62,32 +68,7 @@ const LOCALE_LABELS: Record<string, string> = {
 };
 
 const COUNTDOWN_OPTIONS = [0, 3, 5, 10];
-
-function IconButton({
-	onClick,
-	title,
-	className = "",
-	buttonRef,
-	children,
-}: {
-	onClick?: () => void;
-	title?: string;
-	className?: string;
-	buttonRef?: React.Ref<HTMLButtonElement>;
-	children: ReactNode;
-}) {
-	return (
-		<button
-			ref={buttonRef}
-			type="button"
-			className={`${styles.ib} ${styles.electronNoDrag} ${className}`}
-			onClick={onClick}
-			title={title}
-		>
-			{children}
-		</button>
-	);
-}
+const AUTO_STOP_SECONDS = 30 * 60;
 
 function DropdownItem({
 	onClick,
@@ -201,6 +182,72 @@ export function LaunchWindow() {
 		availableVersion: null,
 	});
 	const [updateActionPending, setUpdateActionPending] = useState(false);
+	const [autoStopEnabled, setAutoStopEnabled] = useState(false);
+	const [spotlightEnabled, setSpotlightEnabled] = useState(false);
+	const [focusModeEnabled, setFocusModeEnabled] = useState(false);
+	const [hideDesktopEnabled, setHideDesktopEnabled] = useState(false);
+	const [watermarkEnabled, setWatermarkEnabled] = useState(false);
+
+	const handleScreenshot = useCallback(async () => {
+		try {
+			const source = await window.electronAPI.getSelectedSource();
+			if (!source?.id) {
+				toast.info(t("recording.actions.selectSourceForScreenshot"));
+				return;
+			}
+
+			const result = await window.electronAPI.captureSourceScreenshot(source);
+			if (!result.success || !result.path) {
+				toast.error(result.error ?? t("recording.actions.screenshotFailed"));
+				return;
+			}
+
+			const screenshotPath = result.path;
+			toast.success(t("recording.actions.screenshotSaved"), {
+				description: screenshotPath,
+				action: {
+					label: t("recording.actions.show"),
+					onClick: () => {
+						void window.electronAPI.revealInFolder(screenshotPath);
+					},
+				},
+			});
+		} catch (error) {
+			console.error("Failed to take screenshot:", error);
+			toast.error(t("recording.actions.screenshotFailed"));
+		}
+	}, [t]);
+
+	const handleSpotlight = useCallback(() => {
+		setSpotlightEnabled((prev) => !prev);
+	}, []);
+
+	const handleFocusMode = useCallback(() => {
+		setFocusModeEnabled((prev) => {
+			const nextValue = !prev;
+			if (nextValue) {
+				void window.electronAPI.getSelectedSource().then((source) => {
+					if (source?.id) {
+						void window.electronAPI.showSourceHighlight?.(source);
+					}
+				});
+			}
+			return nextValue;
+		});
+	}, []);
+
+	const handleHideDesktop = useCallback(() => {
+		setHideDesktopEnabled((prev) => !prev);
+	}, []);
+
+	const handleWatermark = useCallback(() => {
+		setWatermarkEnabled((prev) => !prev);
+	}, []);
+
+	const handleAutoStop = useCallback(() => {
+		setAutoStopEnabled((prev) => !prev);
+	}, []);
+
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const hudContentRef = useRef<HTMLDivElement>(null);
 	const hudBarRef = useRef<HTMLDivElement>(null);
@@ -324,6 +371,25 @@ export function LaunchWindow() {
 			if (timer) clearInterval(timer);
 		};
 	}, [recording, recordingStart, paused, pausedAt, pausedTotal]);
+
+	useEffect(() => {
+		if (!recording || paused || !autoStopEnabled) {
+			return;
+		}
+
+		const remainingSeconds = AUTO_STOP_SECONDS - elapsed;
+		if (remainingSeconds <= 0) {
+			void toggleRecording();
+			return;
+		}
+
+		const timerId = window.setTimeout(() => {
+			void toggleRecording();
+			toast.info(t("recording.actions.autoStopTriggered"));
+		}, remainingSeconds * 1000);
+
+		return () => window.clearTimeout(timerId);
+	}, [autoStopEnabled, elapsed, paused, recording, t, toggleRecording]);
 
 	const formatTime = (seconds: number) => {
 		const m = Math.floor(seconds / 60)
@@ -756,39 +822,56 @@ export function LaunchWindow() {
 
 			<Separator />
 
-			<IconButton
-				title={
-					microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")
-				}
-				className={microphoneEnabled ? styles.ibActive : ""}
+			<button
+				type="button"
+				className={`${styles.ib} ${microphoneEnabled ? styles.ibActive : ""}`}
+				title={microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")}
 			>
-				{microphoneEnabled ? <Mic size={18} /> : <MicOff size={18} />}
-			</IconButton>
+				{microphoneEnabled ? <Mic size={16} /> : <MicOff size={16} />}
+				<span className={styles.ibLabel}>{t("recording.mic")}</span>
+			</button>
 
 			<Separator />
 
-			<IconButton
+			<button
+				type="button"
+				className={`${styles.ib} ${paused ? styles.ibGreen : ""}`}
 				onClick={paused ? resumeRecording : pauseRecording}
 				title={paused ? t("recording.resume") : t("recording.pause")}
-				className={paused ? styles.ibGreen : ""}
 			>
-				{paused ? <Play size={18} fill="currentColor" strokeWidth={0} /> : <Pause size={18} />}
-			</IconButton>
+				{paused ? <Play size={16} fill="currentColor" strokeWidth={0} /> : <Pause size={16} />}
+				<span className={styles.ibLabel}>{paused ? t("recording.resume") : t("recording.pause")}</span>
+			</button>
 
-			<IconButton onClick={toggleRecording} title={t("recording.stop")} className={styles.ibRed}>
+			<button
+				type="button"
+				className={`${styles.ib} ${styles.ibRed}`}
+				onClick={toggleRecording}
+				title={t("recording.stop")}
+			>
 				<Square size={16} fill="currentColor" strokeWidth={0} />
-			</IconButton>
+				<span className={styles.ibLabel}>{t("recording.stop")}</span>
+			</button>
 
-			<IconButton
+			<Separator />
+
+			<button
+				type="button"
+				className={styles.ibCompact}
 				onClick={() => window.electronAPI?.hudOverlayHide?.()}
 				title={t("recording.hideHud")}
 			>
-				<Minus size={16} />
-			</IconButton>
+				<Minus size={15} />
+			</button>
 
-			<IconButton onClick={cancelRecording} title={t("recording.cancel")}>
-				<X size={18} />
-			</IconButton>
+			<button
+				type="button"
+				className={styles.ibCompact}
+				onClick={cancelRecording}
+				title={t("recording.cancel")}
+			>
+				<X size={15} />
+			</button>
 		</>
 	);
 
@@ -800,46 +883,75 @@ export function LaunchWindow() {
 				onClick={() => toggleDropdown("sources")}
 				title={selectedSource}
 			>
-				<Monitor size={16} />
+				<Monitor size={15} />
 				<ContentClamp className={styles.sourceLabel} truncateLength={36}>
 					{selectedSource}
 				</ContentClamp>
-				<ChevronUp
-					size={10}
-					className={`text-[#6b6b78] ml-0.5 transition-transform duration-200 ${activeDropdown === "sources" ? "" : "rotate-180"}`}
+				<ChevronDown
+					size={11}
+					className={`text-[#6b6b78] ml-0.5 transition-transform duration-200 ${activeDropdown === "sources" ? "rotate-180" : ""}`}
 				/>
 			</button>
 
 			<Separator />
 
-			<IconButton
+			{/* Mic */}
+			<button
+				type="button"
+				className={`${styles.ib} ${microphoneEnabled ? styles.ibActive : ""}`}
 				onClick={toggleMicrophone}
-				title={
-					microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")
-				}
-				className={microphoneEnabled ? styles.ibActive : ""}
+				title={microphoneEnabled ? t("recording.disableMicrophone") : t("recording.enableMicrophone")}
 			>
-				{microphoneEnabled ? <Mic size={18} /> : <MicOff size={18} />}
-			</IconButton>
+				{microphoneEnabled ? <Mic size={16} /> : <MicOff size={16} />}
+				<span className={styles.ibLabel}>{t("recording.mic")}</span>
+			</button>
 
-			<IconButton
+			{/* Camera */}
+			<button
+				type="button"
+				className={`${styles.ib} ${webcamEnabled ? styles.ibActive : ""}`}
 				onClick={toggleWebcam}
 				title={webcamEnabled ? t("recording.disableWebcam") : t("recording.enableWebcam")}
-				className={webcamEnabled ? styles.ibActive : ""}
 			>
-				{webcamEnabled ? <Video size={18} /> : <VideoOff size={18} />}
-			</IconButton>
+				{webcamEnabled ? <Video size={16} /> : <VideoOff size={16} />}
+				<span className={styles.ibLabel}>{t("recording.camera")}</span>
+			</button>
 
-			<IconButton
+			{/* System audio */}
+			<button
+				type="button"
+				className={`${styles.ib} ${systemAudioEnabled ? styles.ibActive : ""}`}
+				onClick={() => setSystemAudioEnabled(!systemAudioEnabled)}
+				title={systemAudioEnabled ? t("recording.disableSystemAudio") : t("recording.enableSystemAudio")}
+			>
+				{systemAudioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+				<span className={styles.ibLabel}>{t("recording.system")}</span>
+			</button>
+
+			{/* Timer */}
+			<button
+				type="button"
+				className={`${styles.ib} ${countdownDelay > 0 ? styles.ibActive : ""}`}
 				onClick={() => toggleDropdown("countdown")}
 				title={t("recording.countdownDelay")}
-				className={countdownDelay > 0 ? styles.ibActive : ""}
 			>
-				<Timer size={18} />
-			</IconButton>
+				<Timer size={16} />
+				<span className={styles.ibLabel}>{t("recording.timer")}</span>
+			</button>
+
+			{/* Annotate */}
+			<button
+				type="button"
+				className={styles.ib}
+				title={t("recording.annotate")}
+			>
+				<Pencil size={16} />
+				<span className={styles.ibLabel}>{t("recording.annotate")}</span>
+			</button>
 
 			<Separator />
 
+			{/* Record button */}
 			<button
 				type="button"
 				className={`${styles.recBtn} ${styles.electronNoDrag}`}
@@ -852,27 +964,33 @@ export function LaunchWindow() {
 
 			<Separator />
 
-			<IconButton
-				buttonRef={moreButtonRef}
+			<button
+				ref={moreButtonRef}
+				type="button"
+				className={styles.ibCompact}
 				onClick={() => toggleDropdown("more")}
 				title={t("recording.more")}
 			>
-				<MoreVertical size={18} />
-			</IconButton>
+				<MoreVertical size={16} />
+			</button>
 
-			<IconButton
+			<button
+				type="button"
+				className={styles.ibCompact}
 				onClick={() => window.electronAPI?.hudOverlayHide?.()}
 				title={t("recording.hideHud")}
 			>
-				<Minus size={16} />
-			</IconButton>
+				<Minus size={15} />
+			</button>
 
-			<IconButton
+			<button
+				type="button"
+				className={styles.ibCompact}
 				onClick={() => window.electronAPI?.hudOverlayClose?.()}
 				title={t("recording.closeApp")}
 			>
-				<X size={16} />
-			</IconButton>
+				<X size={15} />
+			</button>
 		</>
 	);
 
@@ -1226,6 +1344,133 @@ export function LaunchWindow() {
 							</AnimatePresence>
 						</div>
 					</motion.div>
+
+					{/* ── Feature bar (secondary toolbar) ── */}
+					{!recording && (
+						<div className={styles.featureBar} aria-label={t("recording.actions.label")}>
+							{/* Screenshot — one-shot action */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag}`}
+								title={t("recording.actions.screenshotTitle")}
+								onClick={() => void handleScreenshot()}
+							>
+								<span className={styles.featureBarIcon}>
+									<Camera size={18} style={{ color: "#c084fc" }} />
+								</span>
+								<span className={styles.featureBarLabel}>{t("recording.actions.screenshot")}</span>
+							</button>
+
+							{/* Spotlight — toggle cursor spotlight effect */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag} ${spotlightEnabled ? styles.featureBarBtnActive : ""}`}
+								title={
+									spotlightEnabled
+										? t("recording.actions.disableSpotlight")
+										: t("recording.actions.enableSpotlight")
+								}
+								onClick={handleSpotlight}
+							>
+								<span className={styles.featureBarIcon}>
+									<Crosshair size={18} style={{ color: spotlightEnabled ? "#f9a8d4" : "#f472b6" }} />
+								</span>
+								<span className={styles.featureBarLabel}>{t("recording.actions.spotlight")}</span>
+							</button>
+
+							{/* Focus Mode — dim everything outside active window */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag} ${focusModeEnabled ? styles.featureBarBtnActive : ""}`}
+								title={
+									focusModeEnabled
+										? t("recording.actions.disableFocusMode")
+										: t("recording.actions.enableFocusMode")
+								}
+								onClick={handleFocusMode}
+							>
+								<span className={styles.featureBarIcon}>
+									<Focus size={18} style={{ color: focusModeEnabled ? "#93c5fd" : "#60a5fa" }} />
+								</span>
+								<span className={styles.featureBarLabel}>{t("recording.actions.focusMode")}</span>
+							</button>
+
+							{/* Hide Desktop — hide desktop icons during recording */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag} ${hideDesktopEnabled ? styles.featureBarBtnActive : ""}`}
+								title={
+									hideDesktopEnabled
+										? t("recording.actions.disableHideDesktop")
+										: t("recording.actions.enableHideDesktop")
+								}
+								onClick={handleHideDesktop}
+							>
+								<span className={styles.featureBarIcon}>
+									{hideDesktopEnabled
+										? <Eye size={18} style={{ color: "#93c5fd" }} />
+										: <EyeOff size={18} style={{ color: "#60a5fa" }} />
+									}
+								</span>
+								<span className={styles.featureBarLabel}>{t("recording.actions.hideDesktop")}</span>
+							</button>
+
+							{/* Watermark — overlay branding on recording */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag} ${watermarkEnabled ? styles.featureBarBtnActive : ""}`}
+								title={
+									watermarkEnabled
+										? t("recording.actions.disableWatermark")
+										: t("recording.actions.enableWatermark")
+								}
+								onClick={handleWatermark}
+							>
+								<span className={styles.featureBarIcon}>
+									<Droplets size={18} style={{ color: watermarkEnabled ? "#7dd3fc" : "#38bdf8" }} />
+								</span>
+								<span className={styles.featureBarLabel}>{t("recording.actions.watermark")}</span>
+							</button>
+
+							{/* Auto Stop — toggle with ON/OFF pill */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag} ${autoStopEnabled ? styles.featureBarBtnActive : ""}`}
+								title={
+									autoStopEnabled
+										? t("recording.actions.disableAutoStop")
+										: t("recording.actions.enableAutoStop")
+								}
+								onClick={handleAutoStop}
+							>
+								<span className={styles.featureBarIcon}>
+									<Timer size={18} style={{ color: autoStopEnabled ? "#fdba74" : "#fb923c" }} />
+								</span>
+								<span className={styles.featureBarToggle}>
+									<span className={styles.featureBarLabel}>{t("recording.actions.autoStop")}</span>
+									<span className={`${styles.togglePill} ${autoStopEnabled ? styles.togglePillOn : ""}`}>
+										{autoStopEnabled ? t("recording.actions.on") : t("recording.actions.off")}
+									</span>
+								</span>
+							</button>
+						</div>
+					)}
+
+					{/* ── Status bar — always visible, shows timer + storage ── */}
+					<div className={styles.statusBar} style={{ opacity: recording ? 1 : 0.45, pointerEvents: recording ? "auto" : "none" }}>
+						<div
+							className={styles.statusDot}
+							style={{
+								background: paused ? "#fbbf24" : "#f43f5e",
+								animation: recording && !paused ? undefined : "none",
+							}}
+						/>
+						<span className={styles.statusTime}>
+							{`00:${formatTime(elapsed)}`}
+						</span>
+						<div className={styles.statusSep} />
+						<span className={styles.statusStorage}>0 KB / 100 GB</span>
+					</div>
 				</div>
 			</div>
 		</div>
