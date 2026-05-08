@@ -376,7 +376,7 @@ export default function VideoEditor() {
 	const [cursorClickSoundVolume, setCursorClickSoundVolume] = useState(
 		initialEditorPreferences.cursorClickSoundVolume ?? 0.3,
 	);
-	const [cursorClickSoundVariant, setCursorClickSoundVariant] = useState<'default' | 'soft' | 'mechanical' | 'pop'>(
+	const [cursorClickSoundVariant, setCursorClickSoundVariant] = useState<'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap'>(
 		initialEditorPreferences.cursorClickSoundVariant ?? 'default',
 	);
 	const [borderRadius, setBorderRadius] = useState(initialEditorPreferences.borderRadius);

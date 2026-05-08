@@ -46,7 +46,7 @@ export interface EditorPreferences extends PersistedEditorControls {
 	whisperModelPath: string | null;
 	cursorClickSoundEnabled: boolean;
 	cursorClickSoundVolume: number;
-	cursorClickSoundVariant: 'default' | 'soft' | 'mechanical' | 'pop';
+	cursorClickSoundVariant: 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap';
 }
 
 export const EDITOR_PREFERENCES_STORAGE_KEY = "recordly.editor.preferences";

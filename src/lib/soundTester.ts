@@ -1,299 +1,242 @@
 /**
- * Sound Tester Utility
- * Provides functions to test and demo all click sounds
+ * Sound Tester - Console utilities for testing cursor click sounds
+ * 
+ * Usage in browser console:
+ * - testAllSounds() - Play all 10 variants in sequence
+ * - testSound('bubble') - Play a specific variant
+ * - testInteractions() - Test click, double-click, right-click
+ * - testVolume() - Test volume levels
  */
 
 import { soundManager } from './soundManager';
-import { generateAllClickSounds } from './generateClickSound';
 
-export class SoundTester {
-	private initialized = false;
+/**
+ * Test all sound variants in sequence
+ */
+export function testAllSounds() {
+	const variants = [
+		'default',
+		'soft',
+		'mechanical',
+		'pop',
+		'bubble',
+		'wooden',
+		'metallic',
+		'glass',
+		'swoosh',
+		'beep',
+		'snap',
+		'thud',
+		'chirp',
+		'coin',
+		'laser',
+		'drum',
+		'bell',
+		'whomp',
+		'tick',
+		'zap',
+	] as const;
 
-	/**
-	 * Initialize all sounds
-	 */
-	async initialize(): Promise<void> {
-		if (this.initialized) {
-			return;
-		}
-
-		console.log('🔊 Initializing click sounds...');
-		const startTime = performance.now();
-
-		try {
-			const sounds = await generateAllClickSounds();
-			soundManager.loadAllSounds(sounds);
-			this.initialized = true;
-
-			const duration = Math.round(performance.now() - startTime);
-			console.log(`✅ Click sounds initialized in ${duration}ms`);
-			console.log('Available sounds:', Object.keys(sounds));
-		} catch (error) {
-			console.error('❌ Failed to initialize sounds:', error);
-			throw error;
-		}
-	}
-
-	/**
-	 * Test all sound types in sequence
-	 */
-	async testAllSounds(): Promise<void> {
-		await this.initialize();
-
-		console.log('🎵 Testing all sound types...');
-
-		const tests = [
-			{ name: 'Default Click', fn: () => soundManager.playClick(), delay: 0 },
-			{ name: 'Double-Click', fn: () => soundManager.playDoubleClick(), delay: 600 },
-			{ name: 'Right-Click', fn: () => soundManager.playRightClick(), delay: 1200 },
-			{ name: 'Soft Click', fn: () => {
-				soundManager.setClickSoundVariant('soft');
-				soundManager.playClick();
-			}, delay: 1800 },
-			{ name: 'Mechanical Click', fn: () => {
-				soundManager.setClickSoundVariant('mechanical');
-				soundManager.playClick();
-			}, delay: 2400 },
-			{ name: 'Pop Sound', fn: () => {
-				soundManager.setClickSoundVariant('pop');
-				soundManager.playClick();
-			}, delay: 3000 },
-		];
-
-		for (const test of tests) {
-			setTimeout(() => {
-				console.log(`  Playing: ${test.name}`);
-				test.fn();
-			}, test.delay);
-		}
-
-		// Reset to default
+	console.log('🎵 Testing all 20 sound variants...');
+	
+	variants.forEach((variant, index) => {
 		setTimeout(() => {
-			soundManager.setClickSoundVariant('default');
-			console.log('✅ Sound test complete');
-		}, 3600);
-	}
+			soundManager.setClickSoundVariant(variant);
+			soundManager.playClick();
+			console.log(`${index + 1}/20: Playing "${variant}" sound`);
+		}, index * 600);
+	});
 
-	/**
-	 * Test rapid clicks (stress test)
-	 */
-	async testRapidClicks(count = 10, interval = 100): Promise<void> {
-		await this.initialize();
-
-		console.log(`🎵 Testing ${count} rapid clicks (${interval}ms interval)...`);
-
-		for (let i = 0; i < count; i++) {
-			setTimeout(() => {
-				soundManager.playClick();
-				console.log(`  Click ${i + 1}/${count}`);
-			}, i * interval);
-		}
-
-		setTimeout(() => {
-			console.log('✅ Rapid click test complete');
-		}, count * interval + 100);
-	}
-
-	/**
-	 * Test all variants
-	 */
-	async testAllVariants(): Promise<void> {
-		await this.initialize();
-
-		console.log('🎵 Testing all click variants...');
-
-		const variants: Array<'default' | 'soft' | 'mechanical' | 'pop'> = [
-			'default',
-			'soft',
-			'mechanical',
-			'pop',
-		];
-
-		for (let i = 0; i < variants.length; i++) {
-			setTimeout(() => {
-				const variant = variants[i];
-				soundManager.setClickSoundVariant(variant);
-				console.log(`  Playing: ${variant} variant`);
-				soundManager.playClick();
-			}, i * 500);
-		}
-
-		setTimeout(() => {
-			soundManager.setClickSoundVariant('default');
-			console.log('✅ Variant test complete');
-		}, variants.length * 500 + 100);
-	}
-
-	/**
-	 * Test volume levels
-	 */
-	async testVolumeLevels(): Promise<void> {
-		await this.initialize();
-
-		console.log('🎵 Testing volume levels...');
-
-		const volumes = [0.1, 0.3, 0.5, 0.7, 1.0];
-
-		for (let i = 0; i < volumes.length; i++) {
-			setTimeout(() => {
-				const volume = volumes[i];
-				soundManager.setVolume(volume);
-				console.log(`  Volume: ${Math.round(volume * 100)}%`);
-				soundManager.playClick();
-			}, i * 600);
-		}
-
-		setTimeout(() => {
-			soundManager.setVolume(0.3); // Reset to default
-			console.log('✅ Volume test complete');
-		}, volumes.length * 600 + 100);
-	}
-
-	/**
-	 * Test interaction types
-	 */
-	async testInteractionTypes(): Promise<void> {
-		await this.initialize();
-
-		console.log('🎵 Testing interaction types...');
-
-		const interactions = [
-			'click',
-			'double-click',
-			'right-click',
-			'middle-click',
-		];
-
-		for (let i = 0; i < interactions.length; i++) {
-			setTimeout(() => {
-				const type = interactions[i];
-				console.log(`  Interaction: ${type}`);
-				soundManager.playInteraction(type);
-			}, i * 700);
-		}
-
-		setTimeout(() => {
-			console.log('✅ Interaction test complete');
-		}, interactions.length * 700 + 100);
-	}
-
-	/**
-	 * Get sound statistics
-	 */
-	getStats(): {
-		initialized: boolean;
-		enabled: boolean;
-		volume: number;
-		variant: string;
-	} {
-		return {
-			initialized: this.initialized,
-			enabled: soundManager.isEnabled(),
-			volume: soundManager.getVolume(),
-			variant: soundManager.getClickSoundVariant(),
-		};
-	}
-
-	/**
-	 * Print current configuration
-	 */
-	printConfig(): void {
-		const stats = this.getStats();
-		console.log('🔊 Sound Manager Configuration:');
-		console.log(`  Initialized: ${stats.initialized}`);
-		console.log(`  Enabled: ${stats.enabled}`);
-		console.log(`  Volume: ${Math.round(stats.volume * 100)}%`);
-		console.log(`  Variant: ${stats.variant}`);
-	}
-}
-
-// Export singleton instance
-export const soundTester = new SoundTester();
-
-// Add to window for easy console access
-if (typeof window !== 'undefined') {
-	(window as any).soundTester = soundTester;
-	(window as any).soundManager = soundManager;
+	setTimeout(() => {
+		console.log('✅ All sounds tested!');
+	}, variants.length * 600);
 }
 
 /**
- * Quick test functions for console use
+ * Test a specific sound variant
  */
-export const quickTests = {
-	/**
-	 * Test all sounds: window.quickTests.all()
-	 */
-	all: () => soundTester.testAllSounds(),
+export function testSound(variant: 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap') {
+	console.log(`🎵 Testing "${variant}" sound...`);
+	soundManager.setClickSoundVariant(variant);
+	soundManager.playClick();
+}
 
-	/**
-	 * Test rapid clicks: window.quickTests.rapid()
-	 */
-	rapid: () => soundTester.testRapidClicks(),
+/**
+ * Test different interaction types
+ */
+export function testInteractions() {
+	console.log('🎵 Testing interaction types...');
+	
+	setTimeout(() => {
+		console.log('1/3: Click');
+		soundManager.playClick();
+	}, 0);
 
-	/**
-	 * Test variants: window.quickTests.variants()
-	 */
-	variants: () => soundTester.testAllVariants(),
+	setTimeout(() => {
+		console.log('2/3: Double-click');
+		soundManager.playDoubleClick();
+	}, 800);
 
-	/**
-	 * Test volumes: window.quickTests.volumes()
-	 */
-	volumes: () => soundTester.testVolumeLevels(),
+	setTimeout(() => {
+		console.log('3/3: Right-click');
+		soundManager.playRightClick();
+	}, 1600);
 
-	/**
-	 * Test interactions: window.quickTests.interactions()
-	 */
-	interactions: () => soundTester.testInteractionTypes(),
+	setTimeout(() => {
+		console.log('✅ All interactions tested!');
+	}, 2400);
+}
 
-	/**
-	 * Show config: window.quickTests.config()
-	 */
-	config: () => soundTester.printConfig(),
+/**
+ * Test volume levels
+ */
+export function testVolume() {
+	console.log('🎵 Testing volume levels...');
+	
+	const volumes = [0.1, 0.3, 0.5, 0.7, 1.0];
+	
+	volumes.forEach((volume, index) => {
+		setTimeout(() => {
+			soundManager.setVolume(volume);
+			soundManager.playClick();
+			console.log(`${index + 1}/5: Volume ${Math.round(volume * 100)}%`);
+		}, index * 500);
+	});
 
-	/**
-	 * Play single click: window.quickTests.click()
-	 */
-	click: () => soundManager.playClick(),
+	setTimeout(() => {
+		soundManager.setVolume(0.3); // Reset to default
+		console.log('✅ Volume test complete! Reset to 30%');
+	}, volumes.length * 500);
+}
 
-	/**
-	 * Play double-click: window.quickTests.double()
-	 */
-	double: () => soundManager.playDoubleClick(),
+/**
+ * Test rapid clicks (audio pooling)
+ */
+export function testRapidClicks() {
+	console.log('🎵 Testing rapid clicks (audio pooling)...');
+	
+	for (let i = 0; i < 10; i++) {
+		setTimeout(() => {
+			soundManager.playClick();
+		}, i * 50); // 50ms between clicks
+	}
 
-	/**
-	 * Play right-click: window.quickTests.right()
-	 */
-	right: () => soundManager.playRightClick(),
+	setTimeout(() => {
+		console.log('✅ Rapid click test complete!');
+	}, 600);
+}
 
-	/**
-	 * Set variant: window.quickTests.variant('soft')
-	 */
-	variant: (v: 'default' | 'soft' | 'mechanical' | 'pop') => {
-		soundManager.setClickSoundVariant(v);
-		console.log(`✅ Variant set to: ${v}`);
-	},
+/**
+ * Test enable/disable
+ */
+export function testEnableDisable() {
+	console.log('🎵 Testing enable/disable...');
+	
+	setTimeout(() => {
+		console.log('1/4: Enabled - should hear sound');
+		soundManager.setEnabled(true);
+		soundManager.playClick();
+	}, 0);
 
-	/**
-	 * Set volume: window.quickTests.volume(0.5)
-	 */
-	volume: (v: number) => {
-		soundManager.setVolume(v);
-		console.log(`✅ Volume set to: ${Math.round(v * 100)}%`);
-	},
+	setTimeout(() => {
+		console.log('2/4: Disabled - should NOT hear sound');
+		soundManager.setEnabled(false);
+		soundManager.playClick();
+	}, 800);
 
-	/**
-	 * Toggle enabled: window.quickTests.toggle()
-	 */
-	toggle: () => {
-		const newState = !soundManager.isEnabled();
-		soundManager.setEnabled(newState);
-		console.log(`✅ Sounds ${newState ? 'enabled' : 'disabled'}`);
-	},
-};
+	setTimeout(() => {
+		console.log('3/4: Still disabled - should NOT hear sound');
+		soundManager.playClick();
+	}, 1600);
 
-// Add to window for easy console access
-if (typeof window !== 'undefined') {
-	(window as any).quickTests = quickTests;
-	console.log('🎵 Sound testing utilities loaded!');
-	console.log('Try: quickTests.all() or quickTests.click()');
+	setTimeout(() => {
+		console.log('4/4: Re-enabled - should hear sound');
+		soundManager.setEnabled(true);
+		soundManager.playClick();
+	}, 2400);
+
+	setTimeout(() => {
+		console.log('✅ Enable/disable test complete!');
+	}, 3200);
+}
+
+/**
+ * Play a sound showcase with descriptions
+ */
+export function soundShowcase() {
+	const sounds = [
+		{ variant: 'default', name: 'Default', desc: 'Professional tone' },
+		{ variant: 'soft', name: 'Soft', desc: 'Gentle & quiet' },
+		{ variant: 'mechanical', name: 'Mechanical', desc: 'Sharp & crisp' },
+		{ variant: 'pop', name: 'Pop', desc: 'Playful & bouncy' },
+		{ variant: 'bubble', name: 'Bubble', desc: 'Water droplet' },
+		{ variant: 'wooden', name: 'Wooden', desc: 'Natural knock' },
+		{ variant: 'metallic', name: 'Metallic', desc: 'Metal tap' },
+		{ variant: 'glass', name: 'Glass', desc: 'Crystal ring' },
+		{ variant: 'swoosh', name: 'Swoosh', desc: 'Air whoosh' },
+		{ variant: 'beep', name: 'Beep', desc: 'Electronic tone' },
+		{ variant: 'snap', name: 'Snap', desc: 'Finger snap' },
+		{ variant: 'thud', name: 'Thud', desc: 'Deep impact' },
+		{ variant: 'chirp', name: 'Chirp', desc: 'Bird tweet' },
+		{ variant: 'coin', name: 'Coin', desc: 'Arcade coin' },
+		{ variant: 'laser', name: 'Laser', desc: 'Sci-fi zap' },
+		{ variant: 'drum', name: 'Drum', desc: 'Kick drum' },
+		{ variant: 'bell', name: 'Bell', desc: 'Chime ring' },
+		{ variant: 'whomp', name: 'Whomp', desc: 'Bass drop' },
+		{ variant: 'tick', name: 'Tick', desc: 'Clock tick' },
+		{ variant: 'zap', name: 'Zap', desc: 'Electric spark' },
+	] as const;
+
+	console.log('🎵 Sound Showcase - 20 Variants');
+	console.log('================================');
+	
+	sounds.forEach((sound, index) => {
+		setTimeout(() => {
+			soundManager.setClickSoundVariant(sound.variant);
+			soundManager.playClick();
+			console.log(`${index + 1}. ${sound.name} - ${sound.desc}`);
+		}, index * 800);
+	});
+
+	setTimeout(() => {
+		console.log('================================');
+		console.log('✅ Showcase complete!');
+	}, sounds.length * 800);
+}
+
+/**
+ * Get current sound manager status
+ */
+export function getSoundStatus() {
+	console.log('🎵 Sound Manager Status');
+	console.log('======================');
+	console.log(`Enabled: ${soundManager.isEnabled()}`);
+	console.log(`Volume: ${Math.round(soundManager.getVolume() * 100)}%`);
+	console.log(`Variant: ${soundManager.getClickSoundVariant()}`);
+	console.log('======================');
+}
+
+// Expose to window for console access (only in development)
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+	(window as any).soundTester = {
+		testAllSounds,
+		testSound,
+		testInteractions,
+		testVolume,
+		testRapidClicks,
+		testEnableDisable,
+		soundShowcase,
+		getSoundStatus,
+		soundManager,
+	};
+	
+	console.log('🎵 Sound Tester loaded! Available commands:');
+	console.log('  soundTester.testAllSounds() - Test all 20 variants');
+	console.log('  soundTester.testSound("snap") - Test specific variant');
+	console.log('  soundTester.testInteractions() - Test click types');
+	console.log('  soundTester.testVolume() - Test volume levels');
+	console.log('  soundTester.testRapidClicks() - Test audio pooling');
+	console.log('  soundTester.testEnableDisable() - Test on/off');
+	console.log('  soundTester.soundShowcase() - Play all with descriptions');
+	console.log('  soundTester.getSoundStatus() - Show current settings');
 }

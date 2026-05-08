@@ -4,8 +4,8 @@ import App from './App.tsx'
 import { I18nProvider } from './contexts/I18nContext.tsx'
 import './index.css'
 
-// Import sound tester for console access (development)
-// Temporarily disabled - import './lib/soundTester'
+// Import sound tester for console access (development only)
+import './lib/soundTester'
 
 document.documentElement.dataset.platform = /mac/i.test(navigator.platform) ? 'macos' : 'other'
 

@@ -2,7 +2,7 @@
  * Sound Manager for playing cursor click sounds
  */
 
-export type SoundType = 'click' | 'double-click' | 'right-click' | 'soft' | 'mechanical' | 'pop';
+export type SoundType = 'click' | 'double-click' | 'right-click' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap';
 
 interface AudioPool {
 	elements: HTMLAudioElement[];
@@ -14,7 +14,7 @@ class SoundManager {
 	private enabled = true;
 	private volume = 0.3;
 	private poolSize = 5;
-	private clickSoundVariant: 'default' | 'soft' | 'mechanical' | 'pop' = 'default';
+	private clickSoundVariant: 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap' = 'default';
 
 	constructor() {
 		// Initialize pools for each sound type
@@ -22,7 +22,7 @@ class SoundManager {
 	}
 
 	private initializeSoundPools() {
-		const soundTypes: SoundType[] = ['click', 'double-click', 'right-click', 'soft', 'mechanical', 'pop'];
+		const soundTypes: SoundType[] = ['click', 'double-click', 'right-click', 'soft', 'mechanical', 'pop', 'bubble', 'wooden', 'metallic', 'glass', 'swoosh', 'beep', 'snap', 'thud', 'chirp', 'coin', 'laser', 'drum', 'bell', 'whomp', 'tick', 'zap'];
 		
 		for (const type of soundTypes) {
 			this.sounds.set(type, {
@@ -69,6 +69,22 @@ class SoundManager {
 		this.loadSound('soft', soundPaths.soft);
 		this.loadSound('mechanical', soundPaths.mechanical);
 		this.loadSound('pop', soundPaths.pop);
+		this.loadSound('bubble', soundPaths.bubble);
+		this.loadSound('wooden', soundPaths.wooden);
+		this.loadSound('metallic', soundPaths.metallic);
+		this.loadSound('glass', soundPaths.glass);
+		this.loadSound('swoosh', soundPaths.swoosh);
+		this.loadSound('beep', soundPaths.beep);
+		this.loadSound('snap', soundPaths.snap);
+		this.loadSound('thud', soundPaths.thud);
+		this.loadSound('chirp', soundPaths.chirp);
+		this.loadSound('coin', soundPaths.coin);
+		this.loadSound('laser', soundPaths.laser);
+		this.loadSound('drum', soundPaths.drum);
+		this.loadSound('bell', soundPaths.bell);
+		this.loadSound('whomp', soundPaths.whomp);
+		this.loadSound('tick', soundPaths.tick);
+		this.loadSound('zap', soundPaths.zap);
 	}
 
 	/**
@@ -81,14 +97,14 @@ class SoundManager {
 	/**
 	 * Set the click sound variant to use for regular clicks
 	 */
-	setClickSoundVariant(variant: 'default' | 'soft' | 'mechanical' | 'pop') {
+	setClickSoundVariant(variant: 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap') {
 		this.clickSoundVariant = variant;
 	}
 
 	/**
 	 * Get the current click sound variant
 	 */
-	getClickSoundVariant(): 'default' | 'soft' | 'mechanical' | 'pop' {
+	getClickSoundVariant(): 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap' {
 		return this.clickSoundVariant;
 	}
 

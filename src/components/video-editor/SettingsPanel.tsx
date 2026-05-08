@@ -197,8 +197,8 @@ interface SettingsPanelProps {
 	onCursorClickSoundEnabledChange?: (enabled: boolean) => void;
 	cursorClickSoundVolume?: number;
 	onCursorClickSoundVolumeChange?: (volume: number) => void;
-	cursorClickSoundVariant?: 'default' | 'soft' | 'mechanical' | 'pop';
-	onCursorClickSoundVariantChange?: (variant: 'default' | 'soft' | 'mechanical' | 'pop') => void;
+	cursorClickSoundVariant?: 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap';
+	onCursorClickSoundVariantChange?: (variant: 'default' | 'soft' | 'mechanical' | 'pop' | 'bubble' | 'wooden' | 'metallic' | 'glass' | 'swoosh' | 'beep' | 'snap' | 'thud' | 'chirp' | 'coin' | 'laser' | 'drum' | 'bell' | 'whomp' | 'tick' | 'zap') => void;
 	borderRadius?: number;
 	onBorderRadiusChange?: (radius: number) => void;
 	webcam?: WebcamOverlaySettings;
@@ -1818,6 +1818,22 @@ export function SettingsPanel({
 													<SelectItem value="soft">Soft - Gentle & Quiet</SelectItem>
 													<SelectItem value="mechanical">Mechanical - Sharp & Crisp</SelectItem>
 													<SelectItem value="pop">Pop - Playful & Bouncy</SelectItem>
+													<SelectItem value="bubble">Bubble - Water Droplet</SelectItem>
+													<SelectItem value="wooden">Wooden - Natural Knock</SelectItem>
+													<SelectItem value="metallic">Metallic - Metal Tap</SelectItem>
+													<SelectItem value="glass">Glass - Crystal Ring</SelectItem>
+													<SelectItem value="swoosh">Swoosh - Air Whoosh</SelectItem>
+													<SelectItem value="beep">Beep - Electronic Tone</SelectItem>
+													<SelectItem value="snap">Snap - Finger Snap</SelectItem>
+													<SelectItem value="thud">Thud - Deep Impact</SelectItem>
+													<SelectItem value="chirp">Chirp - Bird Tweet</SelectItem>
+													<SelectItem value="coin">Coin - Arcade Coin</SelectItem>
+													<SelectItem value="laser">Laser - Sci-Fi Zap</SelectItem>
+													<SelectItem value="drum">Drum - Kick Drum</SelectItem>
+													<SelectItem value="bell">Bell - Chime Ring</SelectItem>
+													<SelectItem value="whomp">Whomp - Bass Drop</SelectItem>
+													<SelectItem value="tick">Tick - Clock Tick</SelectItem>
+													<SelectItem value="zap">Zap - Electric Spark</SelectItem>
 												</SelectContent>
 											</Select>
 										</div>
