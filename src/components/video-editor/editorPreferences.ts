@@ -19,6 +19,7 @@ type PersistedEditorControls = Pick<
 	| "loopCursor"
 	| "cursorStyle"
 	| "cursorSize"
+	| "cursorSpeed"
 	| "cursorSmoothing"
 	| "cursorMotionBlur"
 	| "cursorClickBounce"
@@ -43,11 +44,15 @@ export interface EditorPreferences extends PersistedEditorControls {
 	customWallpapers: string[];
 	whisperExecutablePath: string | null;
 	whisperModelPath: string | null;
+	cursorClickSoundEnabled: boolean;
+	cursorClickSoundVolume: number;
+	cursorClickSoundVariant: 'default' | 'soft' | 'mechanical' | 'pop';
 }
 
 export const EDITOR_PREFERENCES_STORAGE_KEY = "recordly.editor.preferences";
 
 const DEFAULT_EDITOR_CONTROLS = normalizeProjectEditor({});
+const LEGACY_DEFAULT_CURSOR_SMOOTHING = 0.67;
 
 export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
 	wallpaper: DEFAULT_EDITOR_CONTROLS.wallpaper,
@@ -67,6 +72,7 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
 	loopCursor: DEFAULT_EDITOR_CONTROLS.loopCursor,
 	cursorStyle: DEFAULT_EDITOR_CONTROLS.cursorStyle,
 	cursorSize: DEFAULT_EDITOR_CONTROLS.cursorSize,
+	cursorSpeed: DEFAULT_EDITOR_CONTROLS.cursorSpeed,
 	cursorSmoothing: DEFAULT_EDITOR_CONTROLS.cursorSmoothing,
 	cursorMotionBlur: DEFAULT_EDITOR_CONTROLS.cursorMotionBlur,
 	cursorClickBounce: DEFAULT_EDITOR_CONTROLS.cursorClickBounce,
@@ -86,6 +92,9 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
 	customWallpapers: [],
 	whisperExecutablePath: null,
 	whisperModelPath: null,
+	cursorClickSoundEnabled: true,
+	cursorClickSoundVolume: 0.3,
+	cursorClickSoundVariant: 'default',
 };
 
 function normalizePositiveIntegerString(value: unknown, fallback: string): string {
@@ -144,7 +153,12 @@ function normalizeEditorControls(
 		loopCursor: raw.loopCursor ?? fallback.loopCursor,
 		cursorStyle: raw.cursorStyle ?? fallback.cursorStyle,
 		cursorSize: raw.cursorSize ?? fallback.cursorSize,
-		cursorSmoothing: raw.cursorSmoothing ?? fallback.cursorSmoothing,
+		cursorSpeed: raw.cursorSpeed ?? fallback.cursorSpeed,
+		cursorSmoothing:
+			raw.cursorSmoothing === LEGACY_DEFAULT_CURSOR_SMOOTHING ||
+			raw.cursorSmoothing === fallback.cursorSmoothing
+				? DEFAULT_EDITOR_CONTROLS.cursorSmoothing
+				: raw.cursorSmoothing ?? fallback.cursorSmoothing,
 		cursorMotionBlur: raw.cursorMotionBlur ?? fallback.cursorMotionBlur,
 		cursorClickBounce: raw.cursorClickBounce ?? fallback.cursorClickBounce,
 		cursorClickBounceDuration:
@@ -181,6 +195,7 @@ function normalizeEditorControls(
 		loopCursor: normalized.loopCursor,
 		cursorStyle: normalized.cursorStyle,
 		cursorSize: normalized.cursorSize,
+		cursorSpeed: normalized.cursorSpeed,
 		cursorSmoothing: normalized.cursorSmoothing,
 		cursorMotionBlur: normalized.cursorMotionBlur,
 		cursorClickBounce: normalized.cursorClickBounce,
@@ -220,6 +235,9 @@ export function normalizeEditorPreferences(
 			normalizeNullablePath(raw.whisperExecutablePath) ?? fallback.whisperExecutablePath,
 		whisperModelPath:
 			normalizeNullablePath(raw.whisperModelPath) ?? fallback.whisperModelPath,
+		cursorClickSoundEnabled: raw.cursorClickSoundEnabled ?? fallback.cursorClickSoundEnabled,
+		cursorClickSoundVolume: raw.cursorClickSoundVolume ?? fallback.cursorClickSoundVolume,
+		cursorClickSoundVariant: raw.cursorClickSoundVariant ?? fallback.cursorClickSoundVariant,
 	};
 }
 

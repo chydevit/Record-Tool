@@ -32,6 +32,7 @@ const WEBCAM_WIDTH = 1280;
 const WEBCAM_HEIGHT = 720;
 const WEBCAM_FRAME_RATE = 30;
 const WEBCAM_SUFFIX = "-webcam";
+const ENABLE_NATIVE_WINDOWS_CAPTURE = false;
 
 type PauseSegment = {
   startMs: number;
@@ -375,11 +376,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           videoPath,
           webcamPath,
           timeOffsetMs: webcamTimeOffsetMs.current,
-          autoEditRequested: true,
+          autoEditRequested: false,
         });
       } else {
         await window.electronAPI.setCurrentVideoPath(videoPath, {
-          autoEditRequested: true,
+          autoEditRequested: false,
         });
       }
     } catch (error) {
@@ -387,7 +388,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
       try {
         await window.electronAPI.setCurrentVideoPath(videoPath, {
-          autoEditRequested: true,
+          autoEditRequested: false,
         });
       } catch (fallbackError) {
         console.error("Failed to persist fallback video path:", fallbackError);
@@ -752,7 +753,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
       ) {
         try {
           const nativeWindowsResult = await window.electronAPI.isNativeWindowsCaptureAvailable();
-          useNativeWindowsCapture = nativeWindowsResult.available;
+          useNativeWindowsCapture = ENABLE_NATIVE_WINDOWS_CAPTURE && nativeWindowsResult.available;
           if (!useNativeWindowsCapture && !hasShownNativeWindowsFallbackToast.current) {
             void logNativeCaptureDiagnostics("is-native-windows-capture-available");
             hasShownNativeWindowsFallbackToast.current = true;
@@ -970,18 +971,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           }
         }
       } else {
-        const mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        const mediaStream = await (navigator.mediaDevices as any).getUserMedia({
           audio: false,
-          video: {
-            displaySurface: selectedSource.id?.startsWith("window:") ? "window" : "monitor",
-            width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
-            height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
-            frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
-            cursor: "never",
-          },
-          selfBrowserSurface: "exclude",
-          surfaceSwitching: "exclude",
-        } as any);
+          video: browserScreenVideoConstraints,
+        });
 
         stream.current = mediaStream;
         videoTrack = mediaStream.getVideoTracks()[0];
@@ -989,6 +982,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
       if (!stream.current || !videoTrack) {
         throw new Error("Media stream is not available.");
+      }
+
+      try {
+        await window.electronAPI.hideOsCursor?.();
+      } catch {
+        console.warn("Could not keep OS cursor hidden before recording.");
       }
 
       try {

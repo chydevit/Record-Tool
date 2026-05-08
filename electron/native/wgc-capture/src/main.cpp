@@ -252,13 +252,43 @@ int main(int argc, char* argv[]) {
     // Set up frame callback
     std::atomic<int64_t> frameCount{0};
     std::atomic<bool> recordingStartedAnnounced{false};
+    std::mutex timingMutex;
+    std::chrono::steady_clock::time_point firstFrameWallClock;
+    bool hasFirstFrameWallClock = false;
+    int64_t nextOutputTimestampHns = 0;
+    const int64_t frameIntervalHns = 10000000LL / config.fps;
+
+    auto writeDuplicateFramesUntil = [&](int64_t targetTimestampHns) {
+        while (
+            hasFirstFrameWallClock &&
+            nextOutputTimestampHns <= targetTimestampHns &&
+            !g_pauseRequested
+        ) {
+            if (!encoder.writeDuplicateFrame(nextOutputTimestampHns)) {
+                break;
+            }
+            frameCount.fetch_add(1);
+            nextOutputTimestampHns += frameIntervalHns;
+        }
+    };
+
     session.setFrameCallback([&](ID3D11Texture2D* texture, int64_t timestampHns) {
         g_lastFrameTimestampHns = timestampHns;
         if (g_stopRequested) return;
 
         if (g_pauseRequested) return;
 
-        int64_t adjustedTimestampHns = timestampHns;
+        std::lock_guard<std::mutex> timingLock(timingMutex);
+        const auto now = std::chrono::steady_clock::now();
+        if (!hasFirstFrameWallClock) {
+            firstFrameWallClock = now;
+            hasFirstFrameWallClock = true;
+        }
+
+        int64_t adjustedTimestampHns = std::chrono::duration_cast<
+            std::chrono::duration<int64_t, std::ratio<1, 10000000>>
+        >(now - firstFrameWallClock).count();
+
         if (g_resumePending.exchange(false)) {
             const int64_t pauseStart = g_pauseStartTimestampHns.load();
             if (pauseStart > 0 && timestampHns > pauseStart) {
@@ -271,8 +301,16 @@ int main(int argc, char* argv[]) {
             adjustedTimestampHns = 0;
         }
 
-        if (encoder.writeFrame(texture, adjustedTimestampHns)) {
+        writeDuplicateFramesUntil(adjustedTimestampHns - frameIntervalHns);
+
+        int64_t frameTimestampHns = nextOutputTimestampHns;
+        if (frameTimestampHns < adjustedTimestampHns - frameIntervalHns) {
+            frameTimestampHns = adjustedTimestampHns;
+        }
+
+        if (encoder.writeFrame(texture, frameTimestampHns)) {
             const int64_t writtenFrames = frameCount.fetch_add(1) + 1;
+            nextOutputTimestampHns = frameTimestampHns + frameIntervalHns;
             if (writtenFrames == 1 && !recordingStartedAnnounced.exchange(true)) {
                 std::cout << "Recording started" << std::endl;
                 std::cout.flush();
@@ -338,6 +376,19 @@ int main(int argc, char* argv[]) {
     }
 
     // Stop capture and finalize
+    {
+        std::lock_guard<std::mutex> timingLock(timingMutex);
+        if (hasFirstFrameWallClock) {
+            int64_t finalTimestampHns = std::chrono::duration_cast<
+                std::chrono::duration<int64_t, std::ratio<1, 10000000>>
+            >(std::chrono::steady_clock::now() - firstFrameWallClock).count();
+            finalTimestampHns -= g_accumulatedPausedHns.load();
+            if (finalTimestampHns < 0) {
+                finalTimestampHns = 0;
+            }
+            writeDuplicateFramesUntil(finalTimestampHns);
+        }
+    }
     session.stopCapture();
     if (audioActive) loopback.stop();
     if (micActive) micCapture.stop();

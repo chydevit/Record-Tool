@@ -4,14 +4,21 @@ import {
 	Camera,
 	ChevronDown,
 	CheckCircle2,
+	ChevronRight,
+	Cloud,
 	Crosshair,
 	Droplets,
 	Eye,
 	EyeOff,
+	Film,
 	FolderOpen,
 	Focus,
-	Languages,
-	Mic,
+	Gauge,
+	HardDrive,
+	Heart,
+	Image,
+	Keyboard,
+	Languages,	Mic,
 	MicOff,
 	Minus,
 	Monitor,
@@ -19,8 +26,13 @@ import {
 	Pause,
 	Pencil,
 	Play,
+	Plus,
 	RefreshCw,
+	Save,
+	Settings,
+	Sparkles,
 	Square,
+	Star,
 	Timer,
 	Video,
 	VideoIcon,
@@ -158,6 +170,8 @@ export function LaunchWindow() {
 	const [elapsed, setElapsed] = useState(0);
 	const [pausedAt, setPausedAt] = useState<number | null>(null);
 	const [pausedTotal, setPausedTotal] = useState(0);
+	const recordingStartRef = useRef<number | null>(null);
+	const pausedTotalRef = useRef(0);
 	const [selectedSource, setSelectedSource] = useState("Screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
 	const [, setRecordingsDirectory] = useState<string | null>(null);
@@ -187,6 +201,15 @@ export function LaunchWindow() {
 	const [focusModeEnabled, setFocusModeEnabled] = useState(false);
 	const [hideDesktopEnabled, setHideDesktopEnabled] = useState(false);
 	const [watermarkEnabled, setWatermarkEnabled] = useState(false);
+	const [moreToolsOpen, setMoreToolsOpen] = useState(false);
+	const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+	const [cloudUploadEnabled, setCloudUploadEnabled] = useState(false);
+	const [recordingQuality, setRecordingQuality] = useState<"720p" | "1080p" | "1440p" | "4K">("1080p");
+	const [frameRate, setFrameRate] = useState<30 | 60>(60);
+	const [recordingsCount, setRecordingsCount] = useState(0);
+	const [screenshotsCount] = useState(0);
+	const [favoritesCount] = useState(0);
+	const [activeQuickTab, setActiveQuickTab] = useState<"recordings" | "screenshots" | "favorites">("recordings");
 
 	const handleScreenshot = useCallback(async () => {
 		try {
@@ -357,7 +380,10 @@ export function LaunchWindow() {
 		let timer: NodeJS.Timeout | null = null;
 		if (recording) {
 			if (!recordingStart) {
-				setRecordingStart(Date.now());
+				const now = Date.now();
+				recordingStartRef.current = now;
+				pausedTotalRef.current = 0;
+				setRecordingStart(now);
 				setPausedTotal(0);
 			}
 			if (paused) {
@@ -365,16 +391,20 @@ export function LaunchWindow() {
 				if (timer) clearInterval(timer);
 			} else {
 				if (pausedAt) {
-					setPausedTotal((prev) => prev + (Date.now() - pausedAt));
+					const addedPause = Date.now() - pausedAt;
+					pausedTotalRef.current += addedPause;
+					setPausedTotal((prev) => prev + addedPause);
 					setPausedAt(null);
 				}
 				timer = setInterval(() => {
-					if (recordingStart) {
-						setElapsed(Math.floor((Date.now() - recordingStart - pausedTotal) / 1000));
+					if (recordingStartRef.current !== null) {
+						setElapsed(Math.floor((Date.now() - recordingStartRef.current - pausedTotalRef.current) / 1000));
 					}
-				}, 1000);
+				}, 500);
 			}
 		} else {
+			recordingStartRef.current = null;
+			pausedTotalRef.current = 0;
 			setRecordingStart(null);
 			setElapsed(0);
 			setPausedAt(null);
@@ -451,6 +481,21 @@ export function LaunchWindow() {
 			if (result.success) setRecordingsDirectory(result.path);
 		};
 		void load();
+	}, []);
+
+	// Load project/recording counts for Quick Access bar
+	useEffect(() => {
+		const loadCounts = async () => {
+			try {
+				const result = await window.electronAPI.listProjectFiles();
+				if (result.success) {
+					setRecordingsCount(result.entries.length);
+				}
+			} catch {
+				// ignore
+			}
+		};
+		void loadCounts();
 	}, []);
 
 	useEffect(() => {
@@ -533,13 +578,13 @@ export function LaunchWindow() {
 	}, []);
 
 	useEffect(() => {
-		const expanded = activeDropdown !== "none" || projectBrowserOpen;
+		const expanded = activeDropdown !== "none" || projectBrowserOpen || moreToolsOpen;
 		window.electronAPI.setHudOverlayExpanded(expanded);
 
 		return () => {
 			window.electronAPI.setHudOverlayExpanded(false);
 		};
-	}, [activeDropdown, projectBrowserOpen]);
+	}, [activeDropdown, projectBrowserOpen, moreToolsOpen]);
 
 	useEffect(() => {
 		const hudContent = hudContentRef.current;
@@ -568,7 +613,7 @@ export function LaunchWindow() {
 			window.electronAPI.setHudOverlayCompactWidth(measuredWidth);
 			window.electronAPI.setHudOverlayMeasuredHeight(
 				measuredHeight,
-				activeDropdown !== "none" || projectBrowserOpen,
+				activeDropdown !== "none" || projectBrowserOpen || moreToolsOpen,
 			);
 		};
 
@@ -596,13 +641,14 @@ export function LaunchWindow() {
 				cancelAnimationFrame(frameId);
 			}
 		};
-	}, [activeDropdown, projectBrowserOpen]);
+	}, [activeDropdown, projectBrowserOpen, moreToolsOpen]);
 
 	useEffect(() => {
 		const handleClick = (e: MouseEvent) => {
 			if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
 				setActiveDropdown("none");
 				setProjectBrowserOpen(false);
+				setMoreToolsOpen(false);
 			}
 		};
 		document.addEventListener("mousedown", handleClick);
@@ -1487,6 +1533,134 @@ export function LaunchWindow() {
 									</span>
 								</span>
 							</button>
+
+							{/* More Tools — opens the smart options panel */}
+							<button
+								type="button"
+								className={`${styles.featureBarBtn} ${styles.electronNoDrag} ${moreToolsOpen ? styles.featureBarBtnActive : ""}`}
+								title="More Tools"
+								onClick={() => {
+									setMoreToolsOpen((prev) => !prev);
+									setActiveDropdown("none");
+									setProjectBrowserOpen(false);
+								}}
+							>
+								<span className={styles.featureBarIcon}>
+									<Sparkles size={18} style={{ color: moreToolsOpen ? "#a78bfa" : "#8b5cf6" }} />
+								</span>
+								<span className={styles.featureBarLabel}>More Tools</span>
+							</button>
+						</div>
+					)}
+
+					{/* ── More Tools panel + Quick Access bar row ── */}
+					{!recording && moreToolsOpen && (
+						<div className={`${styles.moreToolsRow} ${styles.electronNoDrag}`}>
+							{/* More Tools panel */}
+							<div className={styles.moreToolsPanel}>
+								<div className={styles.moreToolsHeader}>
+									<Sparkles size={13} style={{ color: "#a78bfa" }} />
+									<span>More Tools</span>
+								</div>
+
+								{/* Auto Save */}
+								<div className={styles.moreToolsItem}>
+									<span className={styles.moreToolsItemIcon}>
+										<Save size={14} style={{ color: "#60a5fa" }} />
+									</span>
+									<span className={styles.moreToolsItemLabel}>Auto Save</span>
+									<button
+										type="button"
+										className={`${styles.moreToolsToggle} ${autoSaveEnabled ? styles.moreToolsToggleOn : ""}`}
+										onClick={() => setAutoSaveEnabled((v) => !v)}
+										aria-label="Toggle Auto Save"
+									>
+										<span className={styles.moreToolsToggleThumb} />
+									</button>
+								</div>
+
+								{/* Cloud Upload */}
+								<div className={styles.moreToolsItem}>
+									<span className={styles.moreToolsItemIcon}>
+										<Cloud size={14} style={{ color: "#60a5fa" }} />
+									</span>
+									<span className={styles.moreToolsItemLabel}>Cloud Upload</span>
+									<button
+										type="button"
+										className={`${styles.moreToolsToggle} ${cloudUploadEnabled ? styles.moreToolsToggleOn : ""}`}
+										onClick={() => setCloudUploadEnabled((v) => !v)}
+										aria-label="Toggle Cloud Upload"
+									>
+										<span className={styles.moreToolsToggleThumb} />
+									</button>
+								</div>
+
+								<div className={styles.moreToolsDivider} />
+
+								{/* Recording Quality */}
+								<button
+									type="button"
+									className={styles.moreToolsNavItem}
+									onClick={() => {
+										const opts: Array<"720p" | "1080p" | "1440p" | "4K"> = ["720p", "1080p", "1440p", "4K"];
+										const idx = opts.indexOf(recordingQuality);
+										setRecordingQuality(opts[(idx + 1) % opts.length]);
+									}}
+								>
+									<span className={styles.moreToolsItemIcon}>
+										<HardDrive size={14} style={{ color: "#94a3b8" }} />
+									</span>
+									<span className={styles.moreToolsItemLabel}>Recording Quality</span>
+									<span className={styles.moreToolsNavValue}>{recordingQuality}</span>
+									<ChevronRight size={12} style={{ color: "#6b6b78", flexShrink: 0 }} />
+								</button>
+
+								{/* Frame Rate */}
+								<button
+									type="button"
+									className={styles.moreToolsNavItem}
+									onClick={() => setFrameRate((v) => (v === 60 ? 30 : 60))}
+								>
+									<span className={styles.moreToolsItemIcon}>
+										<Gauge size={14} style={{ color: "#94a3b8" }} />
+									</span>
+									<span className={styles.moreToolsItemLabel}>Frame Rate</span>
+									<span className={styles.moreToolsNavValue}>{frameRate} FPS</span>
+									<ChevronRight size={12} style={{ color: "#6b6b78", flexShrink: 0 }} />
+								</button>
+
+								{/* Hotkeys */}
+								<button
+									type="button"
+									className={styles.moreToolsNavItem}
+									onClick={() => {
+										setMoreToolsOpen(false);
+										void window.electronAPI.openExternalUrl?.("https://github.com/webadderall/Recordly");
+									}}
+								>
+									<span className={styles.moreToolsItemIcon}>
+										<Keyboard size={14} style={{ color: "#94a3b8" }} />
+									</span>
+									<span className={styles.moreToolsItemLabel}>Hotkeys</span>
+									<ChevronRight size={12} style={{ color: "#6b6b78", flexShrink: 0 }} />
+								</button>
+
+								{/* Settings */}
+								<button
+									type="button"
+									className={styles.moreToolsNavItem}
+									onClick={() => {
+										setMoreToolsOpen(false);
+										void openProjectBrowser();
+									}}
+								>
+									<span className={styles.moreToolsItemIcon}>
+										<Settings size={14} style={{ color: "#94a3b8" }} />
+									</span>
+									<span className={styles.moreToolsItemLabel}>Settings</span>
+									<ChevronRight size={12} style={{ color: "#6b6b78", flexShrink: 0 }} />
+								</button>
+							</div>
 						</div>
 					)}
 
@@ -1506,6 +1680,69 @@ export function LaunchWindow() {
 						<div className={styles.statusSep} />
 						<span className={styles.statusStorage}>0 KB / 100 GB</span>
 					</div>
+
+					{/* ── Quick Access bar ── */}
+					{!recording && (
+						<div className={`${styles.quickAccessBar} ${styles.electronNoDrag}`}>
+							<div className={styles.quickAccessLabel}>
+								<Star size={12} style={{ color: "#fbbf24" }} />
+								<span>Quick Access</span>
+							</div>
+							<div className={styles.quickAccessDivider} />
+							<button
+								type="button"
+								className={`${styles.quickAccessTab} ${activeQuickTab === "recordings" ? styles.quickAccessTabActive : ""}`}
+								onClick={() => {
+									setActiveQuickTab("recordings");
+									void openProjectBrowser();
+								}}
+							>
+								<Film size={13} style={{ color: "#a78bfa" }} />
+								<span>Recordings</span>
+								<span className={styles.quickAccessBadge}>{recordingsCount}</span>
+							</button>
+							<button
+								type="button"
+								className={`${styles.quickAccessTab} ${activeQuickTab === "screenshots" ? styles.quickAccessTabActive : ""}`}
+								onClick={() => {
+									setActiveQuickTab("screenshots");
+									void window.electronAPI.openRecordingsFolder();
+								}}
+							>
+								<Image size={13} style={{ color: "#34d399" }} />
+								<span>Screenshots</span>
+								<span className={styles.quickAccessBadge}>{screenshotsCount}</span>
+							</button>
+							<button
+								type="button"
+								className={`${styles.quickAccessTab} ${activeQuickTab === "favorites" ? styles.quickAccessTabActive : ""}`}
+								onClick={() => setActiveQuickTab("favorites")}
+							>
+								<Heart size={13} style={{ color: "#fbbf24" }} />
+								<span>Favorites</span>
+								<span className={styles.quickAccessBadge}>{favoritesCount}</span>
+							</button>
+							<button
+								type="button"
+								className={styles.quickAccessAdd}
+								title="Add to Quick Access"
+								onClick={() => void openProjectBrowser()}
+							>
+								<Plus size={13} />
+							</button>
+						</div>
+					)}
+
+					{/* ── Keyboard shortcut hint ── */}
+					{!recording && (
+						<div className={styles.shortcutHint}>
+							<span>Press</span>
+							<kbd className={styles.shortcutKey}>Alt</kbd>
+							<span>+</span>
+							<kbd className={styles.shortcutKey}>R</kbd>
+							<span>to Start / Stop Recording</span>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

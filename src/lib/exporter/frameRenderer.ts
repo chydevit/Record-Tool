@@ -83,6 +83,7 @@ interface FrameRenderConfig {
   showCursor?: boolean;
   cursorStyle?: CursorStyle;
   cursorSize?: number;
+  cursorSpeed?: number;
   cursorSmoothing?: number;
   cursorMotionBlur?: number;
   cursorClickBounce?: number;
@@ -223,6 +224,7 @@ export class FrameRenderer {
       this.cursorOverlay = new PixiCursorOverlay({
         dotRadius:
           DEFAULT_CURSOR_CONFIG.dotRadius * (this.config.cursorSize ?? 1.4),
+        speed: this.config.cursorSpeed ?? DEFAULT_CURSOR_CONFIG.speed,
         style: this.config.cursorStyle ?? "tahoe",
         smoothingFactor:
           this.config.cursorSmoothing ?? DEFAULT_CURSOR_CONFIG.smoothingFactor,

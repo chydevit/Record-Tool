@@ -558,7 +558,7 @@ function Timeline({
           ))}
         </Row>
 
-        <Row id={TRIM_ROW_ID} isEmpty={trimItems.length === 0} hint="Press T to add trim">
+        <Row id={TRIM_ROW_ID} isEmpty={trimItems.length === 0} hint="Press T to cut video">
           {trimItems.map((item) => (
             <Item
               id={item.id}
@@ -679,6 +679,7 @@ export default function TimelineEditor({
   isCropped = false,
 }: TimelineEditorProps) {
   const t = useScopedT("settings");
+  const timelineT = useScopedT("timeline");
   const initialEditorPreferences = useMemo(() => loadEditorPreferences(), []);
   const totalMs = useMemo(() => Math.max(0, Math.round(videoDuration * 1000)), [videoDuration]);
   const currentTimeMs = useMemo(() => Math.round(currentTime * 1000), [currentTime]);
@@ -1111,25 +1112,52 @@ export default function TimelineEditor({
       return;
     }
 
-    // Always place trim at playhead
-    const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
-    // Find the next trim region after the playhead
-    const sorted = [...trimRegions].sort((a, b) => a.startMs - b.startMs);
-    const nextRegion = sorted.find(region => region.startMs > startPos);
-    const gapToNext = nextRegion ? nextRegion.startMs - startPos : totalMs - startPos;
+    const minDuration = Math.min(safeMinDurationMs, defaultDuration);
+    const playheadMs = Math.max(0, Math.min(currentTimeMs, totalMs));
+    const sorted = [...trimRegions]
+      .map((region) => ({
+        startMs: Math.max(0, Math.min(region.startMs, totalMs)),
+        endMs: Math.max(0, Math.min(region.endMs, totalMs)),
+      }))
+      .filter((region) => region.endMs > region.startMs)
+      .sort((a, b) => a.startMs - b.startMs);
 
-    // Check if playhead is inside any trim region
-    const isOverlapping = sorted.some(region => startPos >= region.startMs && startPos < region.endMs);
-    if (isOverlapping || gapToNext <= 0) {
-      toast.error("Cannot place trim here", {
-        description: "Trim already exists at this location or not enough space available.",
+    const availableGaps: Span[] = [];
+    let cursorMs = 0;
+    sorted.forEach((region) => {
+      if (region.startMs - cursorMs >= minDuration) {
+        availableGaps.push({ start: cursorMs, end: region.startMs });
+      }
+      cursorMs = Math.max(cursorMs, region.endMs);
+    });
+    if (totalMs - cursorMs >= minDuration) {
+      availableGaps.push({ start: cursorMs, end: totalMs });
+    }
+
+    const containingGap = availableGaps.find((gap) => playheadMs >= gap.start && playheadMs <= gap.end);
+    const nearestGap =
+      containingGap ??
+      availableGaps.reduce<Span | null>((closest, gap) => {
+        if (!closest) {
+          return gap;
+        }
+        const closestDistance = Math.min(Math.abs(playheadMs - closest.start), Math.abs(playheadMs - closest.end));
+        const gapDistance = Math.min(Math.abs(playheadMs - gap.start), Math.abs(playheadMs - gap.end));
+        return gapDistance < closestDistance ? gap : closest;
+      }, null);
+
+    if (!nearestGap) {
+      toast.error(timelineT("trim.cannotPlaceCut", "Cannot cut here"), {
+        description: timelineT("trim.cutExistsOrNoSpace", "A cut already exists at this location or there is not enough space available."),
       });
       return;
     }
 
-    const actualDuration = Math.min(defaultRegionDurationMs, gapToNext);
+    const actualDuration = Math.min(defaultDuration, nearestGap.end - nearestGap.start);
+    const latestStart = nearestGap.end - actualDuration;
+    const startPos = Math.max(nearestGap.start, Math.min(playheadMs, latestStart));
     onTrimAdded({ start: startPos, end: startPos + actualDuration });
-  }, [videoDuration, totalMs, currentTimeMs, trimRegions, onTrimAdded, defaultRegionDurationMs]);
+  }, [videoDuration, totalMs, currentTimeMs, trimRegions, onTrimAdded, defaultRegionDurationMs, safeMinDurationMs, timelineT]);
 
   const handleAddSpeed = useCallback(() => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onSpeedAdded) {
@@ -1499,11 +1527,12 @@ export default function TimelineEditor({
           <Button
             onClick={handleAddTrim}
             variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
-            title="Add Trim (T)"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-slate-300 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+            title={timelineT("trim.cutVideoTitle", "Cut video (T)")}
           >
             <Scissors className="w-4 h-4" />
+            <span className="font-medium">{timelineT("trim.cutVideo", "Cut")}</span>
           </Button>
           <Button
             onClick={onAutoEditRequested}

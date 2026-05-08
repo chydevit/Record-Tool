@@ -167,10 +167,22 @@ bool MFEncoder::writeFrame(ID3D11Texture2D* texture, int64_t timestampHns) {
 
     context_->Unmap(stagingTexture_.Get(), 0);
 
+    hasFrameBuffer_ = true;
+    return writeSampleFromBuffer(timestampHns);
+}
+
+bool MFEncoder::writeDuplicateFrame(int64_t timestampHns) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (!initialized_ || !sinkWriter_ || !hasFrameBuffer_) return false;
+    return writeSampleFromBuffer(timestampHns);
+}
+
+bool MFEncoder::writeSampleFromBuffer(int64_t timestampHns) {
     // Create MF sample
     DWORD bufferSize = static_cast<DWORD>(nv12Buffer_.size());
     ComPtr<IMFMediaBuffer> buffer;
-    hr = MFCreateMemoryBuffer(bufferSize, &buffer);
+    HRESULT hr = MFCreateMemoryBuffer(bufferSize, &buffer);
     if (FAILED(hr)) return false;
 
     BYTE* bufferData = nullptr;
@@ -208,6 +220,7 @@ bool MFEncoder::finalize() {
     }
 
     initialized_ = false;
+    hasFrameBuffer_ = false;
     sinkWriter_.Reset();
     stagingTexture_.Reset();
     nv12Buffer_.clear();

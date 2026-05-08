@@ -86,6 +86,10 @@ async function decodeAudioBufferFromFile(filePath: string): Promise<AudioBuffer>
 		throw new Error(readResult.error || `Unable to read ${filePath}`);
 	}
 
+	return decodeAudioBufferFromData(readResult.data, filePath);
+}
+
+async function decodeAudioBufferFromData(data: unknown, sourceLabel: string): Promise<AudioBuffer> {
 	const AudioContextCtor =
 		window.AudioContext ||
 		(window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -97,8 +101,14 @@ async function decodeAudioBufferFromFile(filePath: string): Promise<AudioBuffer>
 	const audioContext = new AudioContextCtor();
 
 	try {
-		const arrayBuffer = toArrayBuffer(readResult.data);
-		return await audioContext.decodeAudioData(arrayBuffer);
+		const arrayBuffer = toArrayBuffer(data);
+		console.log(`[AutoEdit] Decoding audio from ${sourceLabel}, size: ${arrayBuffer.byteLength} bytes`);
+		const decoded = await audioContext.decodeAudioData(arrayBuffer);
+		console.log(`[AutoEdit] Successfully decoded audio: ${decoded.duration}s, ${decoded.numberOfChannels} channels`);
+		return decoded;
+	} catch (error) {
+		console.error(`[AutoEdit] Failed to decode audio from ${sourceLabel}:`, error);
+		throw error;
 	} finally {
 		await audioContext.close().catch(() => undefined);
 	}
@@ -218,14 +228,23 @@ function buildCandidateAnalysisPaths(
 }
 
 export async function suggestAutoEditFromVideo(videoPath: string): Promise<AutoEditSuggestionResult> {
+	console.log(`[AutoEdit] Starting auto edit analysis for: ${videoPath}`);
+
 	const fallbackPathsResult = await window.electronAPI.getVideoAudioFallbackPaths(videoPath).catch(
-		() => null,
+		(error) => {
+			console.warn(`[AutoEdit] Failed to get fallback paths:`, error);
+			return null;
+		},
 	);
 
 	const candidatePaths = buildCandidateAnalysisPaths(videoPath, fallbackPathsResult);
+	console.log(`[AutoEdit] Candidate audio paths:`, candidatePaths);
+
 	let lastError: unknown = null;
 
-	for (const candidatePath of candidatePaths) {
+	const fallbackAudioPaths = candidatePaths.filter((candidatePath) => candidatePath !== videoPath);
+	for (const candidatePath of fallbackAudioPaths) {
+		console.log(`[AutoEdit] Trying to analyze: ${candidatePath}`);
 		try {
 			const audioBuffer = await decodeAudioBufferFromFile(candidatePath);
 			const trimRegions = buildTrimRegionsFromAudioBuffer(audioBuffer);
@@ -234,20 +253,72 @@ export async function suggestAutoEditFromVideo(videoPath: string): Promise<AutoE
 				0,
 			);
 
+			console.log(`[AutoEdit] Analysis complete. Found ${trimRegions.length} trim regions, total trimmed: ${totalTrimmedMs}ms`);
+
 			return {
 				trimRegions,
 				analyzedPath: candidatePath,
 				totalTrimmedMs,
 			};
 		} catch (error) {
+			console.warn(`[AutoEdit] Failed to analyze ${candidatePath}:`, error);
 			lastError = error;
 		}
 	}
 
-	if (lastError) {
-		throw lastError;
+	if (typeof window.electronAPI.extractVideoAudioForAnalysis === "function") {
+		try {
+			console.log(`[AutoEdit] Extracting audio track for analysis: ${videoPath}`);
+			const extractedAudio = await window.electronAPI.extractVideoAudioForAnalysis(videoPath);
+			if (!extractedAudio.success || !extractedAudio.data) {
+				throw new Error(extractedAudio.error || "Unable to extract audio from the video.");
+			}
+
+			const audioBuffer = await decodeAudioBufferFromData(
+				extractedAudio.data,
+				`${extractedAudio.sourcePath ?? videoPath} (extracted audio)`,
+			);
+			const trimRegions = buildTrimRegionsFromAudioBuffer(audioBuffer);
+			const totalTrimmedMs = trimRegions.reduce(
+				(total, region) => total + (region.endMs - region.startMs),
+				0,
+			);
+
+			console.log(`[AutoEdit] Analysis complete. Found ${trimRegions.length} trim regions, total trimmed: ${totalTrimmedMs}ms`);
+
+			return {
+				trimRegions,
+				analyzedPath: extractedAudio.sourcePath ?? videoPath,
+				totalTrimmedMs,
+			};
+		} catch (error) {
+			console.warn(`[AutoEdit] Failed to analyze extracted audio:`, error);
+			lastError = error;
+		}
 	}
 
+	try {
+		console.log(`[AutoEdit] Trying direct audio decode fallback: ${videoPath}`);
+		const audioBuffer = await decodeAudioBufferFromFile(videoPath);
+		const trimRegions = buildTrimRegionsFromAudioBuffer(audioBuffer);
+		const totalTrimmedMs = trimRegions.reduce(
+			(total, region) => total + (region.endMs - region.startMs),
+			0,
+		);
+
+		console.log(`[AutoEdit] Analysis complete. Found ${trimRegions.length} trim regions, total trimmed: ${totalTrimmedMs}ms`);
+
+		return {
+			trimRegions,
+			analyzedPath: videoPath,
+			totalTrimmedMs,
+		};
+	} catch (error) {
+		console.warn(`[AutoEdit] Failed to analyze ${videoPath}:`, error);
+		lastError = error;
+	}
+
+	console.warn(`[AutoEdit] No decodable audio found to analyze. Last error:`, lastError);
 	return {
 		trimRegions: [],
 		analyzedPath: null,

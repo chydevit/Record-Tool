@@ -50,6 +50,7 @@ import {
 	DEFAULT_CURSOR_CLICK_BOUNCE_DURATION,
 	DEFAULT_CURSOR_MOTION_BLUR,
 	DEFAULT_CURSOR_SIZE,
+	DEFAULT_CURSOR_SPEED,
 	DEFAULT_CURSOR_SMOOTHING,
 	DEFAULT_CURSOR_STYLE,
 	DEFAULT_CURSOR_SWAY,
@@ -180,6 +181,8 @@ interface SettingsPanelProps {
 	onCursorStyleChange?: (style: CursorStyle) => void;
 	cursorSize?: number;
 	onCursorSizeChange?: (size: number) => void;
+	cursorSpeed?: number;
+	onCursorSpeedChange?: (speed: number) => void;
 	cursorSmoothing?: number;
 	onCursorSmoothingChange?: (smoothing: number) => void;
 	cursorMotionBlur?: number;
@@ -190,6 +193,12 @@ interface SettingsPanelProps {
 	onCursorClickBounceDurationChange?: (duration: number) => void;
 	cursorSway?: number;
 	onCursorSwayChange?: (amount: number) => void;
+	cursorClickSoundEnabled?: boolean;
+	onCursorClickSoundEnabledChange?: (enabled: boolean) => void;
+	cursorClickSoundVolume?: number;
+	onCursorClickSoundVolumeChange?: (volume: number) => void;
+	cursorClickSoundVariant?: 'default' | 'soft' | 'mechanical' | 'pop';
+	onCursorClickSoundVariantChange?: (variant: 'default' | 'soft' | 'mechanical' | 'pop') => void;
 	borderRadius?: number;
 	onBorderRadiusChange?: (radius: number) => void;
 	webcam?: WebcamOverlaySettings;
@@ -523,6 +532,8 @@ export function SettingsPanel({
 	onCursorStyleChange,
 	cursorSize = 5,
 	onCursorSizeChange,
+	cursorSpeed = DEFAULT_CURSOR_SPEED,
+	onCursorSpeedChange,
 	cursorSmoothing = 2,
 	onCursorSmoothingChange,
 	cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
@@ -533,6 +544,12 @@ export function SettingsPanel({
 	onCursorClickBounceDurationChange,
 	cursorSway = DEFAULT_CURSOR_SWAY,
 	onCursorSwayChange,
+	cursorClickSoundEnabled = true,
+	onCursorClickSoundEnabledChange,
+	cursorClickSoundVolume = 0.3,
+	onCursorClickSoundVolumeChange,
+	cursorClickSoundVariant = 'default',
+	onCursorClickSoundVariantChange,
 	borderRadius = 12.5,
 	onBorderRadiusChange,
 	webcam,
@@ -872,6 +889,7 @@ export function SettingsPanel({
 		onLoopCursorChange?.(initialEditorPreferences.loopCursor);
 		onCursorStyleChange?.(initialEditorPreferences.cursorStyle);
 		onCursorSizeChange?.(initialEditorPreferences.cursorSize);
+		onCursorSpeedChange?.(initialEditorPreferences.cursorSpeed);
 		onCursorSmoothingChange?.(initialEditorPreferences.cursorSmoothing);
 		onCursorMotionBlurChange?.(initialEditorPreferences.cursorMotionBlur);
 		onCursorClickBounceChange?.(initialEditorPreferences.cursorClickBounce);
@@ -1701,6 +1719,17 @@ export function SettingsPanel({
 								parseInput={(text) => parseFloat(text.replace(/×$/, ""))}
 							/>
 							<SliderControl
+								label={tSettings("effects.cursorSpeed", "Cursor Speed")}
+								value={cursorSpeed}
+								defaultValue={DEFAULT_CURSOR_SPEED}
+								min={0.25}
+								max={3}
+								step={0.05}
+								onChange={(v) => onCursorSpeedChange?.(v)}
+								formatValue={(v) => `${v.toFixed(2)}×`}
+								parseInput={(text) => parseFloat(text.replace(/×$/, ""))}
+							/>
+							<SliderControl
 								label={tSettings("effects.cursorSmoothing")}
 								value={cursorSmoothing}
 								defaultValue={DEFAULT_CURSOR_SMOOTHING}
@@ -1759,6 +1788,58 @@ export function SettingsPanel({
 									return parseFloat(text.replace(/×$/, ""));
 								}}
 							/>
+							
+							{/* Click Sound Settings */}
+							<div className="mt-3 space-y-1.5 rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
+								<div className="mb-2 flex items-center justify-between">
+									<span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+										Click Sounds
+									</span>
+									<Switch
+										checked={cursorClickSoundEnabled}
+										onCheckedChange={onCursorClickSoundEnabledChange}
+										className="data-[state=checked]:bg-[#2563EB] scale-75"
+									/>
+								</div>
+								
+								{cursorClickSoundEnabled && (
+									<>
+										<div className="space-y-1">
+											<label className="text-[10px] text-slate-400">Sound Style</label>
+											<Select
+												value={cursorClickSoundVariant}
+												onValueChange={(value) => onCursorClickSoundVariantChange?.(value as typeof cursorClickSoundVariant)}
+											>
+												<SelectTrigger className="h-8 rounded-lg border-white/10 bg-white/5 text-xs text-slate-200">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="default">Default - Professional</SelectItem>
+													<SelectItem value="soft">Soft - Gentle & Quiet</SelectItem>
+													<SelectItem value="mechanical">Mechanical - Sharp & Crisp</SelectItem>
+													<SelectItem value="pop">Pop - Playful & Bouncy</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+										
+										<SliderControl
+											label="Volume"
+											value={cursorClickSoundVolume}
+											defaultValue={0.3}
+											min={0}
+											max={1}
+											step={0.05}
+											onChange={(v) => onCursorClickSoundVolumeChange?.(v)}
+											formatValue={(v) => `${Math.round(v * 100)}%`}
+											parseInput={(text) => parseFloat(text.replace(/%$/, "")) / 100}
+										/>
+										
+										<div className="pt-1 text-[9px] text-slate-500">
+											Different sounds play for clicks, double-clicks, and right-clicks
+										</div>
+									</>
+								)}
+							</div>
 						</div>
 					</section>
 				);

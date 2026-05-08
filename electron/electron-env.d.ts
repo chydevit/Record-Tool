@@ -144,10 +144,27 @@ interface Window {
 		getVideoAudioFallbackPaths: (
 			videoPath: string,
 		) => Promise<{ success: boolean; paths: string[]; error?: string }>;
+		extractVideoAudioForAnalysis: (videoPath: string) => Promise<{
+			success: boolean;
+			data?: Uint8Array;
+			sourcePath?: string;
+			error?: string;
+		}>;
 		setRecordingState: (recording: boolean) => Promise<void>;
 		getCursorTelemetry: (videoPath?: string) => Promise<{
 			success: boolean;
 			samples: CursorTelemetryPoint[];
+			message?: string;
+			error?: string;
+		}>;
+		repairRecordingDurationFromTelemetry: (
+			videoPath: string,
+			mediaDurationMs: number,
+		) => Promise<{
+			success: boolean;
+			repaired?: boolean;
+			path?: string;
+			targetDurationMs?: number;
 			message?: string;
 			error?: string;
 		}>;

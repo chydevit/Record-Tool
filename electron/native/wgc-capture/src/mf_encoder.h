@@ -20,9 +20,12 @@ public:
     bool initialize(const std::wstring& outputPath, int width, int height, int fps,
                     ID3D11Device* device, ID3D11DeviceContext* context);
     bool writeFrame(ID3D11Texture2D* texture, int64_t timestampHns);
+    bool writeDuplicateFrame(int64_t timestampHns);
     bool finalize();
 
 private:
+    bool writeSampleFromBuffer(int64_t timestampHns);
+
     ComPtr<IMFSinkWriter> sinkWriter_;
     ID3D11Device* device_ = nullptr;
     ID3D11DeviceContext* context_ = nullptr;
@@ -33,5 +36,6 @@ private:
     int height_ = 0;
     int fps_ = 60;
     bool initialized_ = false;
+    bool hasFrameBuffer_ = false;
     std::mutex mutex_;
 };

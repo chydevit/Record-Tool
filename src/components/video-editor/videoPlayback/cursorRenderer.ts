@@ -11,6 +11,7 @@ import parchedDefaultCursorUrl from "../../../assets/cursors/parched/default.png
 import parchedPointerCursorUrl from "../../../assets/cursors/parched/pointer.png";
 import turtleDefaultCursorUrl from "../../../assets/cursors/turtle/default.png";
 import turtlePointerCursorUrl from "../../../assets/cursors/turtle/pointer.png";
+import { soundManager } from "../../../lib/soundManager";
 import {
 	type CursorStyle,
 	type CursorTelemetryPoint,
@@ -64,6 +65,8 @@ export interface CursorRenderConfig {
 	trailLength: number;
 	/** Smoothing factor for cursor interpolation (0–1, lower = smoother/slower) */
 	smoothingFactor: number;
+	/** Playback speed multiplier for cursor telemetry. */
+	speed: number;
 	/** Directional cursor motion blur amount. */
 	motionBlur: number;
 	/** Click bounce multiplier. */
@@ -82,6 +85,7 @@ export const DEFAULT_CURSOR_CONFIG: CursorRenderConfig = {
 	dotAlpha: 0.95,
 	trailLength: 0,
 	smoothingFactor: 0.18,
+	speed: 1,
 	motionBlur: 0,
 	clickBounce: 1,
 	clickBounceDuration: DEFAULT_CURSOR_CLICK_BOUNCE_DURATION,
@@ -94,6 +98,8 @@ const MIN_CURSOR_VIEWPORT_SCALE = 0.55;
 const CLICK_RING_FADE_MS = 240;
 const CURSOR_MOTION_BLUR_BASE_MULTIPLIER = 0.08;
 const CURSOR_TIME_DISCONTINUITY_MS = 100;
+const CURSOR_SNAP_SMOOTHING_THRESHOLD = 0.2;
+const CURSOR_PLAYBACK_LEAD_MS = 90;
 const CURSOR_SWAY_SMOOTHING_MULTIPLIER = 0.7;
 const CURSOR_SWAY_SMOOTHING_OFFSET = 0.18;
 const CURSOR_SVG_DROP_SHADOW_FILTER = "drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.35))";
@@ -807,7 +813,10 @@ export class SmoothedCursorState {
 			return;
 		}
 
-		if (this.smoothingFactor <= 0 || (this.lastTimeMs !== null && timeMs < this.lastTimeMs)) {
+		if (
+			this.smoothingFactor <= CURSOR_SNAP_SMOOTHING_THRESHOLD ||
+			(this.lastTimeMs !== null && timeMs < this.lastTimeMs)
+		) {
 			this.snapTo(targetX, targetY, timeMs);
 			return;
 		}
@@ -876,6 +885,7 @@ export class PixiCursorOverlay {
 	private lastRenderedTimeMs: number | null = null;
 	private swayRotation = 0;
 	private swaySpring = createSpringState(0);
+	private lastClickTimeMs: number | null = null;
 
 	constructor(config: Partial<CursorRenderConfig> = {}) {
 		this.config = { ...DEFAULT_CURSOR_CONFIG, ...config };
@@ -950,6 +960,10 @@ export class PixiCursorOverlay {
 		this.state.setSmoothingFactor(smoothingFactor);
 	}
 
+	setSpeed(speed: number) {
+		this.config.speed = clamp(speed, 0.25, 3);
+	}
+
 	setMotionBlur(motionBlur: number) {
 		this.config.motionBlur = Math.max(0, motionBlur);
 		this.container.filters = this.config.motionBlur > 0 ? [this.cursorMotionBlurFilter] : null;
@@ -1017,7 +1031,12 @@ export class PixiCursorOverlay {
 			return;
 		}
 
-		const target = interpolateCursorPosition(samples, timeMs);
+		const firstSampleTimeMs = samples[0]?.timeMs ?? 0;
+		const cursorSpeed = clamp(this.config.speed, 0.25, 3);
+		const speedAdjustedTimeMs =
+			firstSampleTimeMs + (timeMs - firstSampleTimeMs) * cursorSpeed;
+		const lookupTimeMs = freeze ? timeMs : speedAdjustedTimeMs + CURSOR_PLAYBACK_LEAD_MS;
+		const target = interpolateCursorPosition(samples, lookupTimeMs);
 		if (!target) {
 			this.container.visible = false;
 			return;
@@ -1055,9 +1074,21 @@ export class PixiCursorOverlay {
 		const h = this.config.dotRadius * getCursorViewportScale(viewport);
 		const { cursorType, clickBounceProgress, clickProgress } = getCursorVisualState(
 			samples,
-			timeMs,
+			lookupTimeMs,
 			this.config.clickBounceDuration,
 		);
+		
+		// Trigger click sound when a new click is detected
+		if (clickProgress > 0 && clickProgress > 0.9) {
+			const latestClick = findLatestInteractionSample(samples, lookupTimeMs);
+			if (latestClick && latestClick.timeMs !== this.lastClickTimeMs) {
+				this.lastClickTimeMs = latestClick.timeMs;
+				// Play appropriate sound based on interaction type
+				const interactionType = latestClick.interactionType || 'click';
+				soundManager.playInteraction(interactionType);
+			}
+		}
+		
 		const bounceScale = Math.max(
 			0.72,
 			1 - Math.sin(clickBounceProgress * Math.PI) * (0.08 * this.config.clickBounce),

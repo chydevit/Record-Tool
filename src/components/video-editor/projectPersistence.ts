@@ -22,6 +22,7 @@ import {
 	DEFAULT_CURSOR_CLICK_BOUNCE_DURATION,
 	DEFAULT_CURSOR_MOTION_BLUR,
 	DEFAULT_CURSOR_SIZE,
+	DEFAULT_CURSOR_SPEED,
 	DEFAULT_CURSOR_SMOOTHING,
 	DEFAULT_CURSOR_STYLE,
 	DEFAULT_CURSOR_SWAY,
@@ -72,6 +73,7 @@ export interface ProjectEditorState {
 	loopCursor: boolean;
 	cursorStyle: CursorStyle;
 	cursorSize: number;
+	cursorSpeed: number;
 	cursorSmoothing: number;
 	cursorMotionBlur: number;
 	cursorClickBounce: number;
@@ -564,6 +566,9 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		cursorSize: isFiniteNumber(editor.cursorSize)
 			? clamp(editor.cursorSize, 0.5, 10)
 			: DEFAULT_CURSOR_SIZE,
+		cursorSpeed: isFiniteNumber((editor as Partial<ProjectEditorState>).cursorSpeed)
+			? clamp((editor as Partial<ProjectEditorState>).cursorSpeed as number, 0.25, 3)
+			: DEFAULT_CURSOR_SPEED,
 		cursorSmoothing: isFiniteNumber(editor.cursorSmoothing)
 			? clamp(editor.cursorSmoothing, 0, 2)
 			: DEFAULT_CURSOR_SMOOTHING,

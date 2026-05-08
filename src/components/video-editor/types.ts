@@ -32,6 +32,7 @@ export interface CursorTelemetryPoint {
 
 export interface CursorVisualSettings {
 	size: number;
+	speed: number;
 	smoothing: number;
 	motionBlur: number;
 	clickBounce: number;
@@ -81,10 +82,14 @@ export interface WebcamOverlaySettings {
 }
 
 export const DEFAULT_CURSOR_SIZE = 3.0;
-export const DEFAULT_CURSOR_SMOOTHING = 0.67;
+export const DEFAULT_CURSOR_SPEED = 1.0;
+export const DEFAULT_CURSOR_SMOOTHING = 0.18;
 export const DEFAULT_CURSOR_MOTION_BLUR = 0.4;
 export const DEFAULT_CURSOR_CLICK_BOUNCE = 2.5;
 export const DEFAULT_CURSOR_CLICK_BOUNCE_DURATION = 350;
+export const DEFAULT_CURSOR_CLICK_SOUND = true;
+export const DEFAULT_CURSOR_CLICK_SOUND_VOLUME = 0.3;
+export const DEFAULT_CURSOR_CLICK_SOUND_VARIANT: 'default' | 'soft' | 'mechanical' | 'pop' = 'default';
 export const DEFAULT_CURSOR_SWAY = 0.25;
 export const DEFAULT_ZOOM_MOTION_BLUR = 0.35;
 export const DEFAULT_ZOOM_IN_DURATION_MS = 1522.575;

@@ -40,6 +40,7 @@
 		0 2px 8px rgba(0, 0, 0, 0.15);
 	margin-bottom: 8px;
 	pointer-events: auto;
+	-webkit-app-region: no-drag;
 }
 
 .featureBarBtn {
@@ -515,4 +516,262 @@
 .micSelect option {
 	background-color: #1a1a22;
 	color: #eeeef2;
+}
+
+/* ── More Tools row (panel + optional future sidebar) ── */
+.moreToolsRow {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin-bottom: 8px;
+	pointer-events: auto;
+}
+
+/* ── More Tools panel ── */
+.moreToolsPanel {
+	width: 220px;
+	background: rgba(18, 18, 26, 0.97);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 14px;
+	padding: 10px 8px;
+	box-shadow:
+		0 16px 40px rgba(0, 0, 0, 0.35),
+		0 2px 10px rgba(0, 0, 0, 0.15);
+	animation: menuCardIn 0.18s ease;
+}
+
+.moreToolsHeader {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 8px 8px;
+	font-size: 11px;
+	font-weight: 700;
+	color: #a78bfa;
+	letter-spacing: 0.04em;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	margin-bottom: 4px;
+}
+
+.moreToolsItem {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 8px;
+	border-radius: 8px;
+	transition: background 0.12s ease;
+}
+
+.moreToolsItem:hover {
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.moreToolsItemIcon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+}
+
+.moreToolsItemLabel {
+	flex: 1;
+	font-size: 12px;
+	color: #c0c0d0;
+	font-weight: 500;
+}
+
+/* Toggle switch */
+.moreToolsToggle {
+	position: relative;
+	width: 32px;
+	height: 18px;
+	border-radius: 9px;
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	cursor: pointer;
+	transition: background 0.2s ease, border-color 0.2s ease;
+	flex-shrink: 0;
+}
+
+.moreToolsToggleOn {
+	background: #3b82f6;
+	border-color: rgba(59, 130, 246, 0.5);
+}
+
+.moreToolsToggleThumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #fff;
+	transition: transform 0.2s ease;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.moreToolsToggleOn .moreToolsToggleThumb {
+	transform: translateX(14px);
+}
+
+.moreToolsDivider {
+	height: 1px;
+	background: rgba(255, 255, 255, 0.06);
+	margin: 4px 0;
+}
+
+/* Nav items (with chevron) */
+.moreToolsNavItem {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 7px 8px;
+	border-radius: 8px;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	transition: background 0.12s ease;
+	text-align: left;
+}
+
+.moreToolsNavItem:hover {
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.moreToolsNavValue {
+	font-size: 11px;
+	color: #6b6b78;
+	font-weight: 500;
+	margin-left: auto;
+	margin-right: 4px;
+}
+
+/* ── Quick Access bar ── */
+.quickAccessBar {
+	display: flex;
+	align-items: center;
+	gap: 0;
+	background: rgba(16, 16, 22, 0.92);
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	border-radius: 16px;
+	padding: 6px 10px;
+	margin-top: 6px;
+	box-shadow:
+		0 4px 16px rgba(0, 0, 0, 0.2),
+		0 1px 4px rgba(0, 0, 0, 0.1);
+	pointer-events: auto;
+	-webkit-app-region: no-drag;
+}
+
+.quickAccessLabel {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 11px;
+	font-weight: 600;
+	color: #8888a0;
+	padding-right: 10px;
+	white-space: nowrap;
+}
+
+.quickAccessDivider {
+	width: 1px;
+	height: 16px;
+	background: rgba(255, 255, 255, 0.08);
+	margin: 0 8px;
+	flex-shrink: 0;
+}
+
+.quickAccessTab {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 4px 10px;
+	border-radius: 8px;
+	border: none;
+	background: transparent;
+	font-size: 11px;
+	font-weight: 500;
+	color: #6b6b78;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	white-space: nowrap;
+}
+
+.quickAccessTab:hover {
+	background: rgba(255, 255, 255, 0.06);
+	color: #c0c0d0;
+}
+
+.quickAccessTabActive {
+	background: rgba(255, 255, 255, 0.07);
+	color: #eeeef2;
+}
+
+.quickAccessBadge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 16px;
+	padding: 0 4px;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.08);
+	font-size: 10px;
+	font-weight: 700;
+	color: #8888a0;
+	letter-spacing: 0;
+}
+
+.quickAccessAdd {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 7px;
+	border: 1px dashed rgba(255, 255, 255, 0.12);
+	background: transparent;
+	color: #6b6b78;
+	cursor: pointer;
+	margin-left: 4px;
+	transition: all 0.15s ease;
+	flex-shrink: 0;
+}
+
+.quickAccessAdd:hover {
+	border-color: rgba(255, 255, 255, 0.22);
+	color: #c0c0d0;
+	background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Keyboard shortcut hint ── */
+.shortcutHint {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 8px;
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.3);
+	font-weight: 400;
+	pointer-events: none;
+	user-select: none;
+}
+
+.shortcutKey {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1px 6px;
+	border-radius: 5px;
+	background: rgba(255, 255, 255, 0.07);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	font-size: 10px;
+	font-weight: 600;
+	font-family: ui-monospace, 'SF Mono', monospace;
+	color: rgba(255, 255, 255, 0.45);
+	letter-spacing: 0.02em;
 }

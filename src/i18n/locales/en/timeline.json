@@ -18,9 +18,13 @@
 	},
 	"trim": {
 		"cannotPlace": "Cannot place trim here",
+		"cannotPlaceCut": "Cannot cut here",
 		"existsOrNoSpace": "Trim already exists at this location or not enough space available.",
+		"cutExistsOrNoSpace": "A cut already exists at this location or there is not enough space available.",
 		"label": "Trim {{index}}",
-		"addTrim": "Add Trim (T)"
+		"addTrim": "Add Trim (T)",
+		"cutVideo": "Cut",
+		"cutVideoTitle": "Cut video (T)"
 	},
 	"speed": {
 		"cannotPlace": "Cannot place speed here",

@@ -14,6 +14,8 @@ import {
   DEFAULT_WALLPAPER_PATH,
   DEFAULT_WALLPAPER_RELATIVE_PATH,
 } from "@/lib/wallpapers";
+import { soundManager } from "@/lib/soundManager";
+import { generateAllClickSounds } from "@/lib/generateClickSound";
 import {
   Application,
   Container,
@@ -82,9 +84,10 @@ import { AnnotationOverlay } from "./AnnotationOverlay";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_CLICK_BOUNCE_DURATION,
-  DEFAULT_CURSOR_MOTION_BLUR,
-  DEFAULT_CURSOR_SIZE,
-  DEFAULT_CURSOR_SMOOTHING,
+	DEFAULT_CURSOR_MOTION_BLUR,
+	DEFAULT_CURSOR_SIZE,
+	DEFAULT_CURSOR_SPEED,
+	DEFAULT_CURSOR_SMOOTHING,
   DEFAULT_CURSOR_SWAY,
   DEFAULT_CONNECTED_ZOOM_DURATION_MS,
   DEFAULT_CONNECTED_ZOOM_EASING,
@@ -197,6 +200,7 @@ interface VideoPlaybackProps {
   showCursor?: boolean;
   cursorStyle?: CursorStyle;
   cursorSize?: number;
+  cursorSpeed?: number;
   cursorSmoothing?: number;
   cursorMotionBlur?: number;
   cursorClickBounce?: number;
@@ -264,6 +268,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
       showCursor = false,
       cursorStyle = "tahoe",
       cursorSize = DEFAULT_CURSOR_SIZE,
+      cursorSpeed = DEFAULT_CURSOR_SPEED,
       cursorSmoothing = DEFAULT_CURSOR_SMOOTHING,
       cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
       cursorClickBounce = DEFAULT_CURSOR_CLICK_BOUNCE,
@@ -342,6 +347,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
     const cursorTelemetryRef = useRef<CursorTelemetryPoint[]>([]);
     const showCursorRef = useRef(showCursor);
     const cursorSizeRef = useRef(cursorSize);
+    const cursorSpeedRef = useRef(cursorSpeed);
     const cursorStyleRef = useRef(cursorStyle);
     const cursorSmoothingRef = useRef(cursorSmoothing);
     const cursorMotionBlurRef = useRef(cursorMotionBlur);
@@ -381,6 +387,23 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
         measureText: (text) => measurementContext.measureText(text).width,
       });
     }, [autoCaptionSettings, autoCaptions, currentTime]);
+
+    // Initialize click sounds
+    useEffect(() => {
+      let mounted = true;
+      
+      generateAllClickSounds().then((sounds) => {
+        if (mounted && sounds) {
+          soundManager.loadAllSounds(sounds);
+        }
+      }).catch((error) => {
+        console.warn('Failed to initialize click sounds:', error);
+      });
+
+      return () => {
+        mounted = false;
+      };
+    }, []);
 
     useEffect(() => {
       const captionBox = captionBoxRef.current;
@@ -818,6 +841,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
     }, [cursorSize]);
 
     useEffect(() => {
+      cursorSpeedRef.current = cursorSpeed;
+    }, [cursorSpeed]);
+
+    useEffect(() => {
       cursorSmoothingRef.current = cursorSmoothing;
     }, [cursorSmoothing]);
 
@@ -1062,6 +1089,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
         if (cursorOverlayEnabled) {
           const cursorOverlay = new PixiCursorOverlay({
             dotRadius: DEFAULT_CURSOR_CONFIG.dotRadius * cursorSizeRef.current,
+            speed: cursorSpeedRef.current,
             style: cursorStyleRef.current,
             smoothingFactor: cursorSmoothingRef.current,
             motionBlur: cursorMotionBlurRef.current,
@@ -1418,6 +1446,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
       }
 
       overlay.setDotRadius(DEFAULT_CURSOR_CONFIG.dotRadius * cursorSize);
+      overlay.setSpeed(cursorSpeed);
       overlay.setStyle(cursorStyle);
       overlay.setSmoothingFactor(cursorSmoothing);
       overlay.setMotionBlur(cursorMotionBlur);
@@ -1428,6 +1457,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
     }, [
       cursorStyle,
       cursorSize,
+      cursorSpeed,
       cursorSmoothing,
       cursorMotionBlur,
       cursorClickBounce,
@@ -1566,6 +1596,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
         style={{
           width: "100%",
           aspectRatio: formatAspectRatioForCSS(aspectRatio, nativeAspectRatio),
+          cursor: showCursor ? "none" : undefined,
         }}
       >
         {/* Background layer */}

@@ -34,6 +34,7 @@ const { app, BrowserWindow, desktopCapturer, dialog, ipcMain, shell, systemPrefe
 		shell: Shell;
 		systemPreferences: SystemPreferences;
 	};
+const FFMPEG_BINARY_PATH = nodeRequire("ffmpeg-static") as string | null;
 
 const PROJECT_FILE_EXTENSION = "recordly";
 const LEGACY_PROJECT_FILE_EXTENSIONS = ["openscreen"];
@@ -323,6 +324,146 @@ function isAutoRecordingPath(filePath: string) {
 
 function getTelemetryPathForVideo(videoPath: string) {
 	return `${videoPath}.cursor.json`;
+}
+
+async function readCursorTelemetryMaxTimeMs(videoPath: string) {
+	const telemetryPath = getTelemetryPathForVideo(videoPath);
+	const content = await fs.readFile(telemetryPath, "utf-8");
+	const parsed = JSON.parse(content);
+	const rawSamples = Array.isArray(parsed)
+		? parsed
+		: Array.isArray(parsed?.samples)
+			? parsed.samples
+			: [];
+
+	return rawSamples.reduce((maxTimeMs: number, sample: unknown) => {
+		if (!sample || typeof sample !== "object") {
+			return maxTimeMs;
+		}
+
+		const timeMs = (sample as { timeMs?: unknown }).timeMs;
+		return typeof timeMs === "number" && Number.isFinite(timeMs)
+			? Math.max(maxTimeMs, Math.max(0, Math.round(timeMs)))
+			: maxTimeMs;
+	}, 0);
+}
+
+async function detectMediaHasAudio(videoPath: string) {
+	if (!FFMPEG_BINARY_PATH) {
+		return false;
+	}
+
+	try {
+		await execFileAsync(FFMPEG_BINARY_PATH, ["-hide_banner", "-i", videoPath], {
+			timeout: 15000,
+			maxBuffer: 1024 * 1024,
+		});
+		return false;
+	} catch (error) {
+		const processError = error as Error & { stdout?: string; stderr?: string };
+		const output = `${processError.stdout ?? ""}\n${processError.stderr ?? ""}`;
+		return /Stream #\d+:\d+.*Audio:/i.test(output);
+	}
+}
+
+async function repairRecordingDurationFromTelemetry(videoPath: string, mediaDurationMs: number) {
+	if (!FFMPEG_BINARY_PATH) {
+		return { success: false, message: "FFmpeg is not available." };
+	}
+
+	const normalizedVideoPath = normalizeVideoSourcePath(videoPath);
+	if (!normalizedVideoPath) {
+		return { success: false, message: "No video path provided." };
+	}
+
+	const safeMediaDurationMs =
+		typeof mediaDurationMs === "number" && Number.isFinite(mediaDurationMs)
+			? Math.max(0, Math.round(mediaDurationMs))
+			: 0;
+	const targetDurationMs = await readCursorTelemetryMaxTimeMs(normalizedVideoPath);
+	const missingDurationMs = targetDurationMs - safeMediaDurationMs;
+
+	if (targetDurationMs <= 0 || missingDurationMs < 750) {
+		return {
+			success: true,
+			repaired: false,
+			path: normalizedVideoPath,
+			targetDurationMs,
+		};
+	}
+
+	const parsedPath = path.parse(normalizedVideoPath);
+	const outputPath = path.join(parsedPath.dir, `${parsedPath.name}.duration-fixed${parsedPath.ext}`);
+	const extendSeconds = (missingDurationMs / 1000).toFixed(3);
+	const targetSeconds = (targetDurationMs / 1000).toFixed(3);
+	const hasAudio = await detectMediaHasAudio(normalizedVideoPath);
+	const args = hasAudio
+		? [
+				"-y",
+				"-i",
+				normalizedVideoPath,
+				"-filter_complex",
+				`[0:v:0]tpad=stop_mode=clone:stop_duration=${extendSeconds}[v];[0:a:0]apad=pad_dur=${extendSeconds}[a]`,
+				"-map",
+				"[v]",
+				"-map",
+				"[a]",
+				"-t",
+				targetSeconds,
+				"-c:v",
+				"libx264",
+				"-preset",
+				"veryfast",
+				"-crf",
+				"18",
+				"-pix_fmt",
+				"yuv420p",
+				"-c:a",
+				"aac",
+				"-b:a",
+				"192k",
+				"-movflags",
+				"+faststart",
+				outputPath,
+			]
+		: [
+				"-y",
+				"-i",
+				normalizedVideoPath,
+				"-vf",
+				`tpad=stop_mode=clone:stop_duration=${extendSeconds}`,
+				"-t",
+				targetSeconds,
+				"-c:v",
+				"libx264",
+				"-preset",
+				"veryfast",
+				"-crf",
+				"18",
+				"-pix_fmt",
+				"yuv420p",
+				"-movflags",
+				"+faststart",
+				outputPath,
+			];
+
+	await execFileAsync(FFMPEG_BINARY_PATH, args, {
+		timeout: 120000,
+		maxBuffer: 1024 * 1024 * 8,
+	});
+
+	try {
+		await fs.copyFile(getTelemetryPathForVideo(normalizedVideoPath), getTelemetryPathForVideo(outputPath));
+	} catch (error) {
+		console.warn("Failed to copy cursor telemetry for repaired recording:", error);
+	}
+
+	return {
+		success: true,
+		repaired: true,
+		path: outputPath,
+		targetDurationMs,
+	};
 }
 
 async function loadRecordingsDirectorySetting() {
@@ -4630,6 +4771,50 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
 		}
 	});
 
+	ipcMain.handle("extract-video-audio-for-analysis", async (_event, videoPath: string) => {
+		const normalizedVideoPath = normalizeVideoSourcePath(videoPath);
+		if (!normalizedVideoPath) {
+			return { success: false, error: "Missing source video path." };
+		}
+
+		const tempBase = path.join(
+			app.getPath("temp"),
+			`recordly-auto-edit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+		);
+		const wavPath = `${tempBase}.wav`;
+
+		try {
+			await ensureReadableFile(normalizedVideoPath, "video file");
+			await execFileAsync(
+				getFfmpegBinaryPath(),
+				[
+					"-y",
+					"-i",
+					normalizedVideoPath,
+					"-map",
+					"0:a:0",
+					"-vn",
+					"-ac",
+					"1",
+					"-ar",
+					"16000",
+					"-c:a",
+					"pcm_s16le",
+					wavPath,
+				],
+				{ timeout: 5 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 },
+			);
+
+			const data = await fs.readFile(wavPath);
+			return { success: true, data, sourcePath: normalizedVideoPath };
+		} catch (error) {
+			console.warn("Failed to extract audio for auto edit:", error);
+			return { success: false, error: error instanceof Error ? error.message : String(error) };
+		} finally {
+			await fs.rm(wavPath, { force: true }).catch(() => undefined);
+		}
+	});
+
 	ipcMain.handle("mux-native-windows-recording", async (_event, pauseSegments?: PauseSegment[]) => {
 		const videoPath = windowsPendingVideoPath;
 		windowsPendingVideoPath = null;
@@ -4907,6 +5092,34 @@ body{background:transparent;overflow:hidden;width:100vw;height:100vh}
 			};
 		}
 	});
+
+	ipcMain.handle(
+		"repair-recording-duration-from-telemetry",
+		async (_, videoPath: string, mediaDurationMs: number) => {
+			try {
+				const result = await repairRecordingDurationFromTelemetry(videoPath, mediaDurationMs);
+				if (result.success && result.repaired && result.path) {
+					currentVideoPath = result.path;
+					currentRecordingSession = {
+						...(currentRecordingSession ?? {
+							videoPath: result.path,
+							webcamPath: null,
+							timeOffsetMs: 0,
+						}),
+						videoPath: result.path,
+					};
+				}
+				return result;
+			} catch (error) {
+				console.error("Failed to repair recording duration:", error);
+				return {
+					success: false,
+					message: "Failed to repair recording duration.",
+					error: String(error),
+				};
+			}
+		},
+	);
 
 	ipcMain.handle("open-external-url", async (_, url: string) => {
 		try {

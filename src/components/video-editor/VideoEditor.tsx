@@ -46,6 +46,7 @@ import {
 import { resolveMediaElementSource } from "@/lib/exporter/localMediaSource";
 import { clampMediaTimeToDuration } from "@/lib/mediaTiming";
 import { matchesShortcut } from "@/lib/shortcuts";
+import { soundManager } from "@/lib/soundManager";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
 import { suggestAutoEditFromVideo } from "./autoEdit";
 import { resolveAutoCaptionSourcePath } from "./autoCaptionSource";
@@ -357,6 +358,7 @@ export default function VideoEditor() {
 		initialEditorPreferences.cursorStyle ?? DEFAULT_CURSOR_STYLE,
 	);
 	const [cursorSize, setCursorSize] = useState(initialEditorPreferences.cursorSize);
+	const [cursorSpeed, setCursorSpeed] = useState(initialEditorPreferences.cursorSpeed);
 	const [cursorSmoothing, setCursorSmoothing] = useState(initialEditorPreferences.cursorSmoothing);
 	const [cursorMotionBlur, setCursorMotionBlur] = useState(
 		initialEditorPreferences.cursorMotionBlur,
@@ -368,6 +370,15 @@ export default function VideoEditor() {
 		initialEditorPreferences.cursorClickBounceDuration,
 	);
 	const [cursorSway, setCursorSway] = useState(initialEditorPreferences.cursorSway);
+	const [cursorClickSoundEnabled, setCursorClickSoundEnabled] = useState(
+		initialEditorPreferences.cursorClickSoundEnabled ?? true,
+	);
+	const [cursorClickSoundVolume, setCursorClickSoundVolume] = useState(
+		initialEditorPreferences.cursorClickSoundVolume ?? 0.3,
+	);
+	const [cursorClickSoundVariant, setCursorClickSoundVariant] = useState<'default' | 'soft' | 'mechanical' | 'pop'>(
+		initialEditorPreferences.cursorClickSoundVariant ?? 'default',
+	);
 	const [borderRadius, setBorderRadius] = useState(initialEditorPreferences.borderRadius);
 	const [padding, setPadding] = useState(initialEditorPreferences.padding);
 	const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
@@ -450,6 +461,7 @@ export default function VideoEditor() {
 	const pendingFreshRecordingAutoZoomPathRef = useRef<string | null>(null);
 	const pendingImportedAutoEditPathRef = useRef<string | null>(null);
 	const completedImportedAutoEditPathRef = useRef<string | null>(null);
+	const durationRepairAttemptedPathsRef = useRef<Set<string>>(new Set());
 	const historyPastRef = useRef<EditorHistorySnapshot[]>([]);
 	const historyFutureRef = useRef<EditorHistorySnapshot[]>([]);
 	const historyCurrentRef = useRef<EditorHistorySnapshot | null>(null);
@@ -472,6 +484,7 @@ export default function VideoEditor() {
 			setAppPlatform(platform);
 		});
 	}, []);
+
 	const [supportedMp4SourceDimensions, setSupportedMp4SourceDimensions] =
 		useState<SupportedMp4Dimensions>({
 			width: 1920,
@@ -579,6 +592,7 @@ export default function VideoEditor() {
 					showCursor,
 					cursorStyle,
 					cursorSize,
+					cursorSpeed,
 					cursorSmoothing,
 					cursorMotionBlur,
 					cursorClickBounce,
@@ -647,6 +661,7 @@ export default function VideoEditor() {
 		cursorClickBounceDuration,
 		cursorMotionBlur,
 		cursorSize,
+		cursorSpeed,
 		cursorSmoothing,
 		cursorStyle,
 		cursorSway,
@@ -868,6 +883,7 @@ export default function VideoEditor() {
 				loopCursor: boolean;
 				cursorStyle: CursorStyle;
 				cursorSize: number;
+				cursorSpeed: number;
 				cursorSmoothing: number;
 				cursorMotionBlur: number;
 				cursorClickBounce: number;
@@ -960,6 +976,7 @@ export default function VideoEditor() {
 				loopCursor,
 				cursorStyle,
 				cursorSize,
+				cursorSpeed,
 				cursorSmoothing,
 				cursorMotionBlur,
 				cursorClickBounce,
@@ -1001,6 +1018,7 @@ export default function VideoEditor() {
 			loopCursor,
 			cursorStyle,
 			cursorSize,
+			cursorSpeed,
 			cursorSmoothing,
 			cursorMotionBlur,
 			cursorClickBounce,
@@ -1175,6 +1193,7 @@ export default function VideoEditor() {
 			setLoopCursor(normalizedEditor.loopCursor);
 			setCursorStyle(normalizedEditor.cursorStyle);
 			setCursorSize(normalizedEditor.cursorSize);
+			setCursorSpeed(normalizedEditor.cursorSpeed);
 			setCursorSmoothing(normalizedEditor.cursorSmoothing);
 			setCursorMotionBlur(normalizedEditor.cursorMotionBlur);
 			setCursorClickBounce(normalizedEditor.cursorClickBounce);
@@ -1439,11 +1458,15 @@ export default function VideoEditor() {
 			loopCursor,
 			cursorStyle,
 			cursorSize,
+			cursorSpeed,
 			cursorSmoothing,
 			cursorMotionBlur,
 			cursorClickBounce,
 			cursorClickBounceDuration,
 			cursorSway,
+			cursorClickSoundEnabled,
+			cursorClickSoundVolume,
+			cursorClickSoundVariant,
 			borderRadius,
 			padding,
 			webcam,
@@ -1474,11 +1497,15 @@ export default function VideoEditor() {
 		loopCursor,
 		cursorStyle,
 		cursorSize,
+		cursorSpeed,
 		cursorSmoothing,
 		cursorMotionBlur,
 		cursorClickBounce,
 		cursorClickBounceDuration,
 		cursorSway,
+		cursorClickSoundEnabled,
+		cursorClickSoundVolume,
+		cursorClickSoundVariant,
 		borderRadius,
 		padding,
 		webcam,
@@ -1491,6 +1518,19 @@ export default function VideoEditor() {
 		whisperExecutablePath,
 		whisperModelPath,
 	]);
+
+	// Sync sound manager with state
+	useEffect(() => {
+		soundManager.setEnabled(cursorClickSoundEnabled);
+	}, [cursorClickSoundEnabled]);
+
+	useEffect(() => {
+		soundManager.setVolume(cursorClickSoundVolume);
+	}, [cursorClickSoundVolume]);
+
+	useEffect(() => {
+		soundManager.setClickSoundVariant(cursorClickSoundVariant);
+	}, [cursorClickSoundVariant]);
 
 	useEffect(() => {
 		const unsubscribe = window.electronAPI.onWhisperSmallModelDownloadProgress((state) => {
@@ -2016,6 +2056,74 @@ export default function VideoEditor() {
 			}
 		};
 	}, [videoPath]);
+
+	useEffect(() => {
+		if (!videoPath || !videoSourcePath || duration <= 0 || cursorTelemetry.length < 2) {
+			return;
+		}
+
+		const maxTelemetryMs = cursorTelemetry.reduce(
+			(maxTimeMs, sample) => Math.max(maxTimeMs, Math.round(sample.timeMs)),
+			0,
+		);
+		const mediaDurationMs = Math.round(duration * 1000);
+		if (maxTelemetryMs - mediaDurationMs < 1000) {
+			return;
+		}
+
+		const sourcePath = fromFileUrl(videoPath);
+		if (durationRepairAttemptedPathsRef.current.has(sourcePath)) {
+			return;
+		}
+		durationRepairAttemptedPathsRef.current.add(sourcePath);
+
+		let cancelled = false;
+		const repairDuration = async () => {
+			try {
+				const result = await window.electronAPI.repairRecordingDurationFromTelemetry(
+					sourcePath,
+					mediaDurationMs,
+				);
+				if (
+					cancelled ||
+					!result.success ||
+					!result.repaired ||
+					!result.path ||
+					result.path === sourcePath
+				) {
+					if (!result.success) {
+						console.warn("Recording duration repair failed:", result.message ?? result.error);
+					}
+					return;
+				}
+
+				try {
+					videoPlaybackRef.current?.pause();
+				} catch {
+					// no-op
+				}
+
+				setIsPlaying(false);
+				setCurrentTime(0);
+				setDuration(0);
+				setVideoSourcePath(result.path);
+				setVideoPath(toFileUrl(result.path));
+				setPreviewVersion((version) => version + 1);
+				await window.electronAPI.setCurrentVideoPath(result.path);
+				toast.success("Fixed recording duration", {
+					description: "The editor now uses the full recorded length.",
+				});
+			} catch (error) {
+				console.warn("Unable to repair recording duration:", error);
+			}
+		};
+
+		void repairDuration();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [cursorTelemetry, duration, videoPath, videoSourcePath]);
 
 	useEffect(() => {
 		if (
@@ -3060,6 +3168,7 @@ export default function VideoEditor() {
 						showCursor,
 						cursorStyle,
 						cursorSize,
+						cursorSpeed,
 						cursorSmoothing,
 						cursorMotionBlur,
 						cursorClickBounce,
@@ -3170,6 +3279,7 @@ export default function VideoEditor() {
 						showCursor,
 						cursorStyle,
 						cursorSize,
+						cursorSpeed,
 						cursorSmoothing,
 						cursorMotionBlur,
 						cursorClickBounce,
@@ -3848,6 +3958,7 @@ export default function VideoEditor() {
 												showCursor={showCursor}
 												cursorStyle={cursorStyle}
 												cursorSize={cursorSize}
+												cursorSpeed={cursorSpeed}
 												cursorSmoothing={cursorSmoothing}
 												cursorMotionBlur={cursorMotionBlur}
 												cursorClickBounce={cursorClickBounce}
@@ -3988,6 +4099,8 @@ export default function VideoEditor() {
 						onCursorStyleChange={setCursorStyle}
 						cursorSize={cursorSize}
 						onCursorSizeChange={setCursorSize}
+						cursorSpeed={cursorSpeed}
+						onCursorSpeedChange={setCursorSpeed}
 						cursorSmoothing={cursorSmoothing}
 						onCursorSmoothingChange={setCursorSmoothing}
 						cursorMotionBlur={cursorMotionBlur}
@@ -3998,6 +4111,12 @@ export default function VideoEditor() {
 						onCursorClickBounceDurationChange={setCursorClickBounceDuration}
 						cursorSway={cursorSway}
 						onCursorSwayChange={setCursorSway}
+						cursorClickSoundEnabled={cursorClickSoundEnabled}
+						onCursorClickSoundEnabledChange={setCursorClickSoundEnabled}
+						cursorClickSoundVolume={cursorClickSoundVolume}
+						onCursorClickSoundVolumeChange={setCursorClickSoundVolume}
+						cursorClickSoundVariant={cursorClickSoundVariant}
+						onCursorClickSoundVariantChange={setCursorClickSoundVariant}
 						borderRadius={borderRadius}
 						onBorderRadiusChange={setBorderRadius}
 						webcam={webcam}

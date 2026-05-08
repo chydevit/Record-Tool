@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getVideoAudioFallbackPaths: (videoPath: string) => {
 		return ipcRenderer.invoke("get-video-audio-fallback-paths", videoPath);
 	},
+	extractVideoAudioForAnalysis: (videoPath: string) => {
+		return ipcRenderer.invoke("extract-video-audio-for-analysis", videoPath);
+	},
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);
 	},
@@ -117,6 +120,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	getCursorTelemetry: (videoPath?: string) => {
 		return ipcRenderer.invoke("get-cursor-telemetry", videoPath);
+	},
+	repairRecordingDurationFromTelemetry: (videoPath: string, mediaDurationMs: number) => {
+		return ipcRenderer.invoke("repair-recording-duration-from-telemetry", videoPath, mediaDurationMs);
 	},
 	getSystemCursorAssets: () => {
 		return ipcRenderer.invoke("get-system-cursor-assets");
