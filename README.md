@@ -2,191 +2,324 @@
 
 Language: English | [Chinese](README.zh-CN.md)
 
-Crab Records, originally Recordly, is an open-source desktop screen recorder and editor for polished demos, walkthroughs, tutorials, and short product videos. Record a display or window, jump straight into the editor, add zooms, cursor effects, webcam overlays, annotations, captions, and styled backgrounds, then export to MP4 or GIF.
+Crab Records is an open-source desktop screen recorder and video editor for polished demos, walkthroughs, tutorials, and short product videos. Record any display or window, jump straight into the editor, add automatic zooms, cursor effects, voice-over narration, webcam overlays, annotations, captions, and styled backgrounds — then export to MP4 or GIF.
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Linux-111827?style=for-the-badge" alt="macOS Windows Linux" />
   <img src="https://img.shields.io/badge/Electron-39-47848f?style=for-the-badge&logo=electron&logoColor=white" alt="Electron 39" />
   <img src="https://img.shields.io/badge/license-AGPL--3.0-2563eb?style=for-the-badge" alt="AGPL 3.0 license" />
+  <img src="https://img.shields.io/github/v/release/chydevit/Record-Tool?style=for-the-badge&color=22c55e" alt="Latest release" />
 </p>
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Platform Support](#platform-support)
+- [Download & Install](#download--install)
+  - [Windows (.exe)](#windows-exe)
+  - [macOS (.dmg)](#macos-dmg)
+  - [Linux (.AppImage)](#linux-appimage)
+- [How to Use](#how-to-use)
+  - [1. Record Your Screen](#1-record-your-screen)
+  - [2. Edit Your Recording](#2-edit-your-recording)
+  - [3. Auto Edit (Smart Zoom)](#3-auto-edit-smart-zoom)
+  - [4. Add Voice-Over](#4-add-voice-over)
+  - [5. Export](#5-export)
+- [Troubleshooting](#troubleshooting)
+  - [App won't open / crashes on launch](#app-wont-open--crashes-on-launch)
+  - [Recording doesn't start](#recording-doesnt-start)
+  - [No audio in recording](#no-audio-in-recording)
+  - [Windows SmartScreen warning](#windows-smartscreen-warning)
+  - [Black or blank recording](#black-or-blank-recording)
+  - [Export fails or freezes](#export-fails-or-freezes)
+  - [Auto Edit produces no zooms](#auto-edit-produces-no-zooms)
+  - [Webcam not detected](#webcam-not-detected)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Features
 
-- Screen and window recording with platform-native helpers where available.
-- Microphone and system audio capture.
-- Timeline editing for trims, zoom regions, speed regions, annotations, and extra audio.
-- Cursor controls for size, smoothing, motion blur, click bounce, sway, looped motion, and rendered cursor styles.
-- Automatic zoom suggestions from cursor telemetry.
-- Webcam bubble overlays with mirroring, sizing, placement, roundness, shadows, and zoom-reactive scaling.
-- Styled frames with wallpapers, custom images, solid colors, gradients, blur, shadows, padding, corners, and aspect-ratio presets.
-- Auto-captions through Whisper with bundled or user-selected Whisper runtime support.
-- Project saving and reopening through `.recordly` files.
-- MP4 and GIF export with quality, size, frame-rate, and looping controls.
-- Localized UI strings for English, Chinese, Spanish, and Khmer.
+- **Screen & window recording** with platform-native capture helpers (WGC on Windows, ScreenCaptureKit on macOS).
+- **Microphone & system audio** capture with per-device selection and gain control.
+- **Auto Edit** — one-click automatic zoom region generation based on cursor telemetry.
+- **Voice-Over** — record narration directly inside the editor without re-recording the screen.
+- **Timeline editing** — trim, cut, add zoom regions, speed regions, annotations, and extra audio tracks.
+- **Cursor controls** — size, smoothing, motion blur, click bounce, sway, looped motion, and rendered cursor styles.
+- **Webcam bubble overlays** with mirroring, sizing, placement, roundness, shadows, and zoom-reactive scaling.
+- **Styled frames** — wallpapers, custom images, solid colors, gradients, blur, shadows, padding, corners, and aspect-ratio presets.
+- **Auto-captions** through Whisper with bundled or user-selected runtime.
+- **Project saving** — save and reopen sessions as `.recordly` files.
+- **MP4 & GIF export** with quality, size, frame-rate, and looping controls.
+- **Localized UI** — English, Chinese, Spanish, and Khmer.
+
+---
 
 ## Platform Support
 
 | Platform | Minimum | Notes |
 | --- | --- | --- |
-| macOS | 12.3 Monterey | Uses ScreenCaptureKit-based native helpers. Screen recording, microphone, camera, and accessibility permissions may be required. |
-| Windows | Windows 10 20H1, build 19041 | Uses Windows Graphics Capture and WASAPI helpers where available. Older builds may fall back to Electron capture. |
-| Linux | Modern desktop distro | Uses Electron capture APIs. System audio usually depends on PipeWire. Cursor hiding is not supported today. |
+| **macOS** | 12.3 Monterey | Uses ScreenCaptureKit native helpers. Screen recording, microphone, camera, and accessibility permissions may be required. |
+| **Windows** | Windows 10 20H1 (build 19041) | Uses Windows Graphics Capture and WASAPI helpers. Older builds fall back to Electron capture. |
+| **Linux** | Modern desktop distro | Uses Electron capture APIs. System audio usually depends on PipeWire. Cursor hiding is not supported. |
 
-## Download
+---
 
-Packaged builds are published through GitHub Releases when release automation is run:
+## Download & Install
 
-```text
-https://github.com/chydevit/Record-Tool/releases
-```
+Download the latest release from the **[Releases page](https://github.com/chydevit/Record-Tool/releases)**.
 
-The upstream Recordly release configuration may still reference the original project owner in some build metadata. Check `electron-builder.json5` and `.github/workflows/release.yml` before publishing releases from a fork.
+### Windows (.exe)
 
-## Install on Windows from the EXE
+1. Go to the [Releases page](https://github.com/chydevit/Record-Tool/releases).
+2. Under the latest release, find and download **`Crab-Records-windows-x64.exe`**.
+3. Double-click the downloaded `.exe` file.
+4. If Windows shows a **SmartScreen** warning, click **More info → Run anyway** (see [SmartScreen fix](#windows-smartscreen-warning)).
+5. Follow the installer — it installs to `%LocalAppData%\Programs\Crab Records` by default.
+6. Launch **Crab Records** from the Start menu or the desktop shortcut.
+7. On first launch, grant the permissions the app requests (microphone, camera, screen capture).
 
-Use the Windows `.exe` installer when you want to install Crab Records as a normal desktop app.
+> **To uninstall:** Open **Settings → Apps → Installed apps**, find **Crab Records**, and click **Uninstall**.
 
-1. Open the [Releases page](https://github.com/chydevit/Record-Tool/releases).
-2. Choose the latest release.
-3. Download the Windows installer asset. It is usually named like `Crab-Records-windows-x64.exe`.
-4. Double-click the downloaded `.exe` file.
-5. Follow the installer prompts.
-6. Launch Crab Records from the Start menu or desktop shortcut.
+### macOS (.dmg)
 
-Windows may show a Microsoft Defender SmartScreen warning for unsigned or newly published builds. If you trust the release source, click **More info**, then **Run anyway**.
+1. Download **`Crab-Records-arm64.dmg`** (Apple Silicon) or **`Crab-Records-x64.dmg`** (Intel).
+2. Open the `.dmg` file and drag **Crab Records** to your **Applications** folder.
+3. On first launch macOS may quarantine the app. If it won't open, run in Terminal:
+   ```bash
+   xattr -rd com.apple.quarantine /Applications/Crab\ Records.app
+   ```
+4. Grant Screen Recording, Microphone, and Camera permissions when prompted in **System Settings → Privacy & Security**.
 
-On first launch, allow the permissions needed for your recording workflow:
+### Linux (.AppImage)
 
-- Microphone access if you want voice recording.
-- Camera access if you want webcam overlay recording.
-- Screen/window capture prompts when Windows asks for capture access.
-- System audio access when using the built-in audio recording path.
+1. Download **`Crab-Records-linux-x64.AppImage`**.
+2. Make it executable:
+   ```bash
+   chmod +x Crab-Records-linux-x64.AppImage
+   ```
+3. Run it:
+   ```bash
+   ./Crab-Records-linux-x64.AppImage
+   ```
+4. For system audio, ensure **PipeWire** is running on your distro.
 
-If recording does not start correctly after installation:
+---
 
-- Restart the app after granting permissions.
-- Make sure you are using Windows 10 20H1 build 19041 or newer.
-- Try recording a visible, non-minimized window.
-- Reinstall from the latest release if the installer was interrupted.
-- Check that antivirus software has not quarantined the app or its native helper files.
+## How to Use
 
-To uninstall the app, open **Settings > Apps > Installed apps**, find **Crab Records**, and choose **Uninstall**.
+### 1. Record Your Screen
 
-### Build the Windows EXE locally
+1. Launch **Crab Records**. The **Launch UI** (small floating bar) appears.
+2. Click the **screen/window selector** to choose what to capture — a full display or a specific app window.
+3. (Optional) Toggle **Microphone** on/off and choose your mic device from the dropdown.
+4. (Optional) Toggle **System Audio** to capture desktop audio.
+5. (Optional) Toggle **Webcam** to add a webcam bubble overlay.
+6. (Optional) Set a **Countdown** timer (3 s, 5 s, or 10 s) so you have time to switch to your target window.
+7. Click **Record** (the red button). Recording starts after the countdown.
+8. Perform your workflow on screen. Click **Stop** in the floating bar when done.
 
-Developers can build a local Windows installer with:
+> **Tip — Hide Desktop:** Toggle **Hide Desktop** in the Launch UI to hide your desktop icons while recording.
 
-```bash
-npm install
-npm run build:win
-```
+---
 
-The generated installer is written to the `release/` directory. Windows helper builds require Visual Studio C++ build tools and CMake. If CMake is missing, the optional bundled Whisper runtime is skipped unless `RECORDLY_REQUIRE_BUNDLED_WHISPER_RUNTIME=1` is set.
+### 2. Edit Your Recording
+
+After stopping, the editor opens automatically with your clip on the timeline.
+
+| Area | What you can do |
+|------|----------------|
+| **Timeline** | Drag the playhead, drag clip edges to trim, right-click clips for cut/delete |
+| **Zoom Regions** | Drag the zoom bar above the timeline to add a zoom-in region |
+| **Cursor Effects** | Left panel → Cursor tab — size, smoothing, blur, bounce, sway, loops |
+| **Frame / Background** | Left panel → Frame tab — pick wallpaper, color, gradient, or custom image |
+| **Webcam Overlay** | Left panel → Webcam tab — resize, reposition, round corners, add shadow |
+| **Annotations** | Click the **Annotate** button in the toolbar — draw arrows, shapes, or text |
+| **Captions** | Left panel → Captions tab — generate via Whisper or type manually |
+| **Speed Regions** | Right-click on the timeline → Add Speed Region |
+
+Use **Ctrl+Z / Cmd+Z** to undo and **Ctrl+Y / Cmd+Y** to redo.
+
+---
+
+### 3. Auto Edit (Smart Zoom)
+
+Auto Edit analyses your cursor movement telemetry and automatically inserts zoom regions where the action happened — great for long recordings where you want effortless zoom-in highlights.
+
+1. Open a recording in the editor.
+2. Click the **Auto Edit** button in the top toolbar (wand icon).
+3. Wait a moment — zoom regions are inserted into the timeline automatically.
+4. Review the generated zooms by playing back the timeline.
+5. Drag zoom region edges to adjust timing, or delete any you don't want.
+
+> **Tip:** Enable the **Zoom Switch** in the Launch UI before recording to make Auto Edit more accurate — it uses live cursor telemetry rather than post-recording inference.
+
+---
+
+### 4. Add Voice-Over
+
+Record narration on top of your existing screen recording without re-recording the screen.
+
+1. In the editor, click the **Voice-Over** button (microphone icon) in the toolbar.
+2. Choose your **microphone** from the device list.
+3. Position the timeline playhead where you want narration to start.
+4. Click **Record** — narration records while the video plays back.
+5. Click **Stop** to finish. The voice-over track appears in the timeline.
+6. Drag the audio clip to reposition it, or trim its edges.
+
+---
+
+### 5. Export
+
+1. Click the **Export** button (top-right of the editor).
+2. Choose format: **MP4** or **GIF**.
+3. Adjust quality, resolution, and frame rate if needed.
+4. Click **Save** and choose an output location.
+5. Wait for the export progress bar to complete. The file is saved to your chosen location.
+
+> **Save project:** To save your edit for later, click **File → Save** (or press **Ctrl+S**) to write a `.recordly` project file. Reopen it any time to continue editing.
+
+---
+
+## Troubleshooting
+
+### App won't open / crashes on launch
+
+| Check | Fix |
+|-------|-----|
+| **Windows version too old** | Requires Windows 10 20H1 (build 19041) or newer. Update Windows. |
+| **Antivirus blocked the app** | Check antivirus quarantine/exclusions and allow `CrabRecords.exe` and its helper files. |
+| **Corrupted install** | Uninstall via Settings → Apps, then reinstall from the [latest release](https://github.com/chydevit/Record-Tool/releases). |
+| **macOS Gatekeeper block** | Run `xattr -rd com.apple.quarantine /Applications/Crab\ Records.app` in Terminal. |
+| **Missing Visual C++ runtime (Windows)** | Install [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe). |
+
+---
+
+### Recording doesn't start
+
+| Check | Fix |
+|-------|-----|
+| **No screen selected** | Click the source selector and choose a display or window. |
+| **Screen Recording permission denied (macOS)** | Go to **System Settings → Privacy & Security → Screen Recording** and enable Crab Records. Restart the app. |
+| **Capture permission denied (Windows)** | When Windows asks for capture access, click **Allow**. If you missed it, restart the app — it will ask again. |
+| **Window is minimized** | Restore the window you want to record before starting. |
+| **App running as Admin blocks capture** | Run the app without administrator privileges. |
+
+---
+
+### No audio in recording
+
+| Check | Fix |
+|-------|-----|
+| **Microphone not toggled on** | Toggle the mic switch ON in the Launch UI before starting. |
+| **Wrong mic device selected** | Click the mic dropdown and select your correct device. |
+| **System audio off** | Toggle **System Audio** ON in the Launch UI. |
+| **Microphone permission denied (macOS)** | **System Settings → Privacy & Security → Microphone** → enable Crab Records. |
+| **Microphone permission denied (Windows)** | **Settings → Privacy & Security → Microphone** → allow desktop apps to access the mic. |
+| **Linux — no system audio** | Ensure PipeWire is running: `systemctl --user status pipewire`. |
+
+---
+
+### Windows SmartScreen warning
+
+Unsigned or newly published builds trigger Microsoft Defender SmartScreen.
+
+**To bypass:**
+1. Click **More info** on the SmartScreen dialog.
+2. Click **Run anyway**.
+
+This is expected for unsigned community builds. The app is open source — you can review the code or build it yourself.
+
+---
+
+### Black or blank recording
+
+| Check | Fix |
+|-------|-----|
+| **GPU acceleration conflict** | Start the app, go to settings, and disable hardware acceleration. Restart and try again. |
+| **Protected content / DRM window** | Some apps (Netflix, etc.) block capture by design. Switch to a different window. |
+| **Wrong capture API (Windows)** | If WGC capture shows black, try switching to the window-specific capture source. |
+| **Second monitor at different scale (Windows)** | Try recording on your primary monitor first. |
+
+---
+
+### Export fails or freezes
+
+| Check | Fix |
+|-------|-----|
+| **Not enough disk space** | Ensure you have at least 2 GB free on the export destination drive. |
+| **Output path has special characters** | Choose an export folder with a plain path (no emoji, brackets, or non-ASCII characters). |
+| **Very long recording** | For recordings over 30 min, lower the export resolution or split into segments. |
+| **Codec not supported** | Try switching to H.264 (MP4) if H.265 export fails on your system. |
+| **App froze mid-export** | Force-quit and reopen. The `.recordly` project is preserved — reopen it and try exporting again. |
+
+---
+
+### Auto Edit produces no zooms
+
+| Check | Fix |
+|-------|-----|
+| **Cursor telemetry not recorded** | Auto Edit needs cursor movement data captured during recording. Make sure the recording was made with Crab Records (not imported externally). |
+| **Cursor was barely moved** | Auto Edit looks for significant cursor movement. Recordings with very little cursor activity may produce few or no zoom suggestions. |
+| **Zoom Switch was off** | Enable the **Zoom Switch** in the Launch UI before your next recording for better results. |
+
+---
+
+### Webcam not detected
+
+| Check | Fix |
+|-------|-----|
+| **Camera permission denied** | macOS: **System Settings → Privacy → Camera**. Windows: **Settings → Privacy → Camera** → allow desktop apps. |
+| **Another app using the camera** | Close any other app that might be using the webcam (Zoom, Teams, OBS, etc.). |
+| **USB camera not recognized** | Unplug and re-plug the camera, then restart Crab Records. |
+
+---
 
 ## Development
 
-Requirements:
-
-- Node.js 20 or newer.
-- npm.
-- Git.
-- Platform build tools if you need native helpers or packaged builds.
-
-Install dependencies and run the app in development mode:
+**Requirements:** Node.js 20+, npm, Git, and platform build tools for native helpers.
 
 ```bash
+# Install dependencies
 npm install
+
+# Run in development mode
 npm run dev
-```
 
-Run checks:
-
-```bash
+# Run linter and tests
 npm run lint
 npm test
-npm run i18n:check
-```
 
-Build a packaged app for the current platform:
-
-```bash
+# Build for current platform
 npm run build
+
+# Build for a specific platform
+npm run build:win    # Windows NSIS installer
+npm run build:mac    # macOS DMG + ZIP
+npm run build:linux  # Linux AppImage
 ```
 
-Targeted package builds:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide and [RELEASING.md](RELEASING.md) for the release process.
 
-```bash
-npm run build:mac
-npm run build:win
-npm run build:linux
-```
-
-## Native Helpers
-
-The app includes native helpers for capture, cursor telemetry, cursor hiding, and optional Whisper runtime packaging.
-
-Useful scripts:
-
-| Script | Purpose |
-| --- | --- |
-| `npm run build:native-helpers` | Builds macOS native helper binaries. |
-| `npm run build:windows-capture` | Builds the Windows Graphics Capture helper. |
-| `npm run build:cursor-monitor` | Builds the Windows cursor monitor helper. |
-| `npm run build:whisper-runtime` | Builds and stages the optional bundled Whisper CLI runtime. |
-| `npm run build:platform-native-helpers` | Runs the platform helper build sequence used before packaged builds. |
-
-On Windows, native helper builds require Visual Studio C++ build tools and CMake. The Whisper runtime is optional by default: if CMake is missing, the build script skips the bundled runtime and the app can still use a user-selected or system Whisper executable. Set `RECORDLY_REQUIRE_BUNDLED_WHISPER_RUNTIME=1` to make a missing bundled Whisper runtime fail the build.
-
-## Project Structure
-
-```text
-electron/       Electron main process, preload bridge, native helper integration
-src/            React renderer UI, editor, timeline, export, and i18n code
-scripts/        Build, native helper, i18n, and release utility scripts
-public/         Runtime static assets, including wallpapers
-icons/          App icons
-build/          Packaging entitlements and build resources
-.github/        CI and release workflows
-release/        electron-builder output directory
-```
-
-## Recording Workflow
-
-1. Launch the app.
-2. Choose a display or window source.
-3. Configure microphone, system audio, and recording preferences.
-4. Record the clip.
-5. Stop recording to open the editor.
-6. Add trims, zooms, annotations, captions, webcam overlays, and frame styling.
-7. Export as MP4 or GIF, or save the session as a `.recordly` project.
-
-## macOS Quarantine Note
-
-Locally built macOS apps may be blocked by Gatekeeper. If you trust your local build, remove the quarantine flag:
-
-```bash
-xattr -rd com.apple.quarantine /Applications/Crab\ Records.app
-```
+---
 
 ## Contributing
 
-Focused pull requests are welcome. Useful areas include Linux capture behavior, export stability, native helper reliability, localization, and editor workflow improvements.
+Focused pull requests are welcome. Useful areas: Linux capture, export stability, native helper reliability, localization, and editor workflow improvements.
 
-Before opening a PR:
+Before opening a PR: run the relevant checks, test the recording/editing/export path your change touches, and keep unrelated refactors out of the PR.
 
-- Run the relevant checks and tests.
-- Exercise the recording, editing, and export path affected by your change.
-- Keep unrelated refactors out of the PR.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
-
-## Release Notes
-
-Release automation is documented in [RELEASING.md](RELEASING.md). It covers GitHub Releases, electron-builder, auto-update metadata, macOS notarization, Windows signing, and Homebrew tap publishing.
+---
 
 ## Credits
 
 Recordly originally started as a fork of [OpenScreen](https://github.com/siddharthvaddem/openscreen) and has since been substantially changed.
+
+---
 
 ## License
 
