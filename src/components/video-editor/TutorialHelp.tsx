@@ -16,8 +16,8 @@ import { formatShortcut } from "@/utils/platformUtils";
 import { toast } from "sonner";
 
 const RECORDLY_ISSUES_URL = "https://github.com/webadderall/Recordly/issues";
-const RECORDLY_X_URL = "https://x.com/webadderall";
-const CONTACT_EMAIL = "youngchen3442@gmail.com";
+const RECORDLY_X_URL = "https://x.com/ChyDevit54942";
+const CONTACT_EMAIL = "chydevit517170@gmail.com";
 export const APP_HEADER_ACTION_BUTTON_CLASS = "h-7 px-2 text-xs text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all gap-1.5";
 export const APP_HEADER_ICON_BUTTON_CLASS = "h-7 w-7 p-0 text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all";
 
@@ -80,7 +80,7 @@ export function FeedbackDialog() {
 								<p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
 									{t("feedback.xLabel", "X")}
 								</p>
-								<p className="mt-1 text-sm font-medium text-slate-100">@webadderall</p>
+								<p className="mt-1 text-sm font-medium text-slate-100">@ChyDevit54942</p>
 							</div>
 							<Button
 								type="button"

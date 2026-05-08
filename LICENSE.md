@@ -10,7 +10,7 @@ Version 3, 19 November 2007
   same AGPLv3 license.
 - You CANNOT use the "Recordly" name or branding for your own project.
 
-Copyright (C) 2026 webadderall
+Copyright (C) 2026 chydevit
 
 Recordly is an independent application that started as a fork of the OpenScreen project, authored by Siddharth Vaddem (2025).
 
