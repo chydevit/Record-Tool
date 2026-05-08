@@ -37,8 +37,8 @@
   "publish": [
     {
       "provider": "github",
-      "owner": "webadderall",
-      "repo": "Recordly",
+      "owner": "chydevit",
+      "repo": "Record-Tool",
       "tagNamePrefix": "v",
       "publishAutoUpdate": true
     }
