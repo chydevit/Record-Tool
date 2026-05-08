@@ -293,6 +293,7 @@ const CAPTION_LANGUAGE_OPTIONS = [
 	{ value: "zh", label: "Chinese" },
 	{ value: "ja", label: "Japanese" },
 	{ value: "ko", label: "Korean" },
+	{ value: "km", label: "Khmer" },
 ] as const;
 
 function loadPreviewImage(url: string) {

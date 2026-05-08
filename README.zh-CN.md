@@ -361,7 +361,7 @@ https://github.com/webadderall/Recordly/issues
 - erwan
 - Anonymous supporter
 
-其他事项可发送邮件至 `youngchen3442@gmail.com`，或通过 [@webadderall](https://x.com/webadderall) 私信联系。
+其他事项可发送邮件至 `chydevit517170@gmail.com`，或通过 [@ChyDevit54942](https://x.com/ChyDevit54942) 私信联系。
 
 ---
 
@@ -378,6 +378,6 @@ Recordly 基于 **MIT License** 发布。
 Recordly 最初构建于优秀的 [OpenScreen](https://github.com/siddharthvaddem/openscreen) 项目之上，随后逐步扩展出了自己的录制、编辑、光标、摄像头、导出与打包工作流。
 
 创建者  
-[@webadderall](https://x.com/webadderall)
+[@ChyDevit54942](https://x.com/ChyDevit54942)
 
 ---

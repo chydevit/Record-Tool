@@ -50,6 +50,12 @@ Crab Records is an open-source desktop screen recorder and video editor for poli
 
 *Recordly's comprehensive recording interface with Quick Actions, Device Controls, Utilities, Recording Control, and Window Controls*
 
+<p align="center">
+  <img src="screenshots/recordly-review-feature.png" alt="Recordly Review Feature Interface" width="800" />
+</p>
+
+*Detailed view of Recordly's powerful tools including Screenshot, Spotlight, Focus Mode, Webcam, Cursor Effects, Drawing Tools, Keyboard shortcuts, Background Blur, and Smart Options for quality control*
+
 ---
 
 ## Features
